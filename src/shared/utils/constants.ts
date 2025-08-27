@@ -1,0 +1,1 @@
+export const typeNamesMap = { 'truck': 'Camion', 'silo_bag': 'Silobolsa' }

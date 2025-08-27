@@ -1,0 +1,97 @@
+/* Mobile scroll improvements */
+
+/* Smooth scrolling for all scrollable containers */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Container específico para scroll optimizado */
+.scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  /* Asegurar que el contenedor tenga tamaño definido */
+  min-height: 0;
+  flex: 1;
+}
+
+/* Mejoras específicas para mobile */
+@media (max-width: 767px) {
+  .scroll-container {
+    /* Forzar aceleración por hardware */
+    transform: translateZ(0);
+    will-change: scroll-position;
+    /* Mejor handling del momentum scrolling */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+  
+  /* Spacing adicional en mobile para evitar elementos fixed */
+  .scroll-container {
+    padding-bottom: 1rem;
+  }
+}
+
+/* Better scrollbar styling for webkit browsers */
+.scroll-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+  border: none;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Hide scrollbar on desktop if not needed */
+@media (min-width: 768px) {
+  .hide-scrollbar-desktop::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .hide-scrollbar-desktop {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Contenedores padre que deben tener altura definida */
+.flex-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.flex-container > * {
+  flex-shrink: 0;
+}
+
+.flex-container .scroll-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Mejorar cards dentro de scroll containers */
+.scroll-container .grid {
+  gap: 1.5rem;
+  padding-bottom: 1rem;
+}
+
+/* Prevent layout shifts during scroll */
+.scroll-container * {
+  box-sizing: border-box;
+}
+
+/* Ensure proper overflow behavior */
+.overflow-container {
+  overflow: hidden;
+  min-height: 0;
+}

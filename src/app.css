@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+    --color-primary-light: oklch(0.94 0.02 163);
+    --color-primary-medium: oklch(0.65 0.13 156);
+    --color-primary-dark: oklch(0.6 0.14 154);
+    --color-primary-darker: oklch(0.54 0.13 153);
+    --color-secondary: oklch(0.2101 0.0318 264.66);
+
+    --color-accent-blue: oklch(0.63 0.18 259);
+    --color-accent-orange: oklch(0.68 0.19 51);
+
+    --color-background: oklch(0.96 0.01 259);
+    --color-surface: oklch(1 0 0);
+    --color-text-primary: oklch(0.35 0.02 259);
+    --color-text-secondary: oklch(0.56 0.02 259);
+
+    /* --- Radios de Borde --- */
+    --radius-sm: 0.25rem;
+    /* 4px */
+    --radius-md: 0.5rem;
+    /* 8px */
+    --radius-lg: 1rem;
+    /* 16px */
+    --radius-xl: 1.5rem;
+    /* 24px */
+    --radius-full: 9999px;
+
+    /* --- Espaciado --- */
+    --spacing-1: 0.25rem;
+    --spacing-2: 0.5rem;
+    --spacing-4: 1rem;
+    --spacing-6: 1.5rem;
+    --spacing-8: 2rem;
+
+    /* --- Tamaños de Fuente --- */
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+}

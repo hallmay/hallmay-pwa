@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Scroll Mobile - Harvester App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Mobile scroll improvements */
+        * {
+          scroll-behavior: smooth;
+        }
+
+        .scroll-container {
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+          scroll-behavior: smooth;
+        }
+
+        .scroll-container::-webkit-scrollbar {
+          width: 4px;
+        }
+
+        .scroll-container::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .scroll-container::-webkit-scrollbar-thumb {
+          background-color: rgba(0, 0, 0, 0.2);
+          border-radius: 2px;
+          border: none;
+        }
+
+        @media (min-width: 768px) {
+          .hide-scrollbar-desktop::-webkit-scrollbar {
+            display: none;
+          }
+          
+          .hide-scrollbar-desktop {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+        }
+
+        @media (max-width: 767px) {
+          .mobile-scroll {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
+            scroll-behavior: smooth;
+          }
+          
+          .mobile-content {
+            padding-bottom: 5rem;
+          }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-md mx-auto bg-white min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white p-4 flex-shrink-0">
+            <h1 class="text-lg font-bold">Silobolsas</h1>
+        </header>
+        
+        <!-- Filters -->
+        <div class="p-4 bg-gray-50 flex-shrink-0">
+            <select class="w-full p-2 border rounded">
+                <option>Todos los campos</option>
+                <option>Campo Norte</option>
+                <option>Campo Sur</option>
+            </select>
+        </div>
+        
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-hidden">
+            <div class="h-full overflow-y-auto scroll-container mobile-scroll hide-scrollbar-desktop">
+                <div class="mobile-content space-y-4 p-4">
+                    <!-- Silobag Cards -->
+                    <div class="bg-white rounded-lg shadow p-4 border">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-lg">Silobolsa 1</h3>
+                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Activo</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-2">Campo Norte - Maíz</p>
+                        <div class="bg-gray-200 rounded-full h-2 mb-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: 75%"></div>
+                        </div>
+                        <p class="text-sm text-gray-500">12,500 kg (75% ocupado)</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-4 border">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-lg">Silobolsa 2</h3>
+                            <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">En uso</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-2">Campo Sur - Soja</p>
+                        <div class="bg-gray-200 rounded-full h-2 mb-2">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: 45%"></div>
+                        </div>
+                        <p class="text-sm text-gray-500">8,900 kg (45% ocupado)</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-4 border">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-lg">Silobolsa 3</h3>
+                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Activo</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-2">Campo Norte - Trigo</p>
+                        <div class="bg-gray-200 rounded-full h-2 mb-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: 90%"></div>
+                        </div>
+                        <p class="text-sm text-gray-500">18,000 kg (90% ocupado)</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-4 border">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-lg">Silobolsa 4</h3>
+                            <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">Cerrado</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-2">Campo Sur - Maíz</p>
+                        <div class="bg-gray-200 rounded-full h-2 mb-2">
+                            <div class="bg-gray-500 h-2 rounded-full" style="width: 100%"></div>
+                        </div>
+                        <p class="text-sm text-gray-500">20,000 kg (Completo)</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-4 border">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-lg">Silobolsa 5</h3>
+                            <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">En uso</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-2">Campo Este - Soja</p>
+                        <div class="bg-gray-200 rounded-full h-2 mb-2">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: 30%"></div>
+                        </div>
+                        <p class="text-sm text-gray-500">6,000 kg (30% ocupado)</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-4 border">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-lg">Silobolsa 6</h3>
+                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Activo</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-2">Campo Oeste - Girasol</p>
+                        <div class="bg-gray-200 rounded-full h-2 mb-2">
+                            <div class="bg-yellow-500 h-2 rounded-full" style="width: 60%"></div>
+                        </div>
+                        <p class="text-sm text-gray-500">9,600 kg (60% ocupado)</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-4 border">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-lg">Silobolsa 7</h3>
+                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Activo</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-2">Campo Norte - Maíz</p>
+                        <div class="bg-gray-200 rounded-full h-2 mb-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: 80%"></div>
+                        </div>
+                        <p class="text-sm text-gray-500">16,000 kg (80% ocupado)</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-4 border">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-lg">Silobolsa 8</h3>
+                            <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">En uso</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-2">Campo Sur - Soja</p>
+                        <div class="bg-gray-200 rounded-full h-2 mb-2">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: 55%"></div>
+                        </div>
+                        <p class="text-sm text-gray-500">11,000 kg (55% ocupado)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Bottom Navigation -->
+        <nav class="bg-white border-t p-4 flex-shrink-0 md:hidden">
+            <div class="flex justify-around">
+                <button class="text-blue-600">
+                    <span class="block text-xs">Cosecha</span>
+                </button>
+                <button class="text-gray-400">
+                    <span class="block text-xs">Reportes</span>
+                </button>
+                <button class="text-gray-400">
+                    <span class="block text-xs">Campaña</span>
+                </button>
+                <button class="text-gray-400">
+                    <span class="block text-xs">Logística</span>
+                </button>
+                <button class="text-blue-600 font-semibold">
+                    <span class="block text-xs">Silos</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <div class="fixed bottom-4 right-4 md:hidden">
+        <button class="bg-blue-600 text-white p-3 rounded-full shadow-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        // Test scroll to bottom functionality
+        function scrollToBottom() {
+            const container = document.querySelector('.scroll-container');
+            container.scrollTo({ 
+                top: container.scrollHeight, 
+                behavior: 'smooth' 
+            });
+        }
+        
+        // Test scroll to top functionality  
+        function scrollToTop() {
+            const container = document.querySelector('.scroll-container');
+            container.scrollTo({ 
+                top: 0, 
+                behavior: 'smooth' 
+            });
+        }
+
+        // Add click events for testing
+        document.addEventListener('DOMContentLoaded', function() {
+            let scrollToggle = false;
+            const fab = document.querySelector('.fixed button');
+            
+            fab.addEventListener('click', function() {
+                if (scrollToggle) {
+                    scrollToTop();
+                } else {
+                    scrollToBottom();
+                }
+                scrollToggle = !scrollToggle;
+            });
+        });
+    </script>
+</body>
+</html>
