@@ -6,7 +6,20 @@ import Card from "../../shared/components/commons/Card";
 import { formatNumber } from "../../shared/utils";
 
 const SummaryTab: FC = () => {
-    const { harvestSession } = useOutletContext<any>();
+    const { harvestSession } = useOutletContext<{
+        harvestSession: {
+            total_kgs?: number;
+            harvested_kgs?: number;
+            yields?: {
+                harvested?: number;
+                seed?: number;
+                real_vs_projected?: number;
+            };
+            estimated_yield?: number;
+            harvested_hectares?: number;
+            field?: { hectares?: number };
+        };
+    }>();
 
     const totalKg = harvestSession.total_kgs || harvestSession.harvested_kgs || 0;
     const harvestedYield = harvestSession.yields?.harvested || 0;

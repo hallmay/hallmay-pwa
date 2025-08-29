@@ -5,18 +5,22 @@ import type { Silobag } from '../../../../shared/types';
 import TextArea from '../../../../shared/components/form/TextArea';
 
 
+interface CloseSilobagData {
+    details: string;
+}
+
 // --- 1. ACTUALIZAR LA INTERFAZ DE PROPS ---
 interface CloseSiloBagModalProps {
     isOpen: boolean;
     onClose: () => void;
     siloBag: Silobag;
-    onSubmit: (data: any) => Promise<void>;
+    onSubmit: (data: CloseSilobagData) => Promise<void>;
 }
 
 const CloseSiloBagModal: React.FC<CloseSiloBagModalProps> = ({ isOpen, onClose, siloBag, onSubmit }) => {
     const { control, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm();
 
-    const handleFormSubmit = async (data: any) => {
+    const handleFormSubmit = async (data: CloseSilobagData) => {
         await onSubmit(data);
         reset();
     };

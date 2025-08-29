@@ -9,7 +9,23 @@ import Input from "../../../../shared/components/form/Input";
 import Checkbox from "../../../../shared/components/form/Checkbox";
 import Select from "../../../../shared/components/form/Select";
 
-const ManageHarvestersModal: FC<{ isOpen: boolean, onClose: () => void, onSubmit: (data: any) => void, harvestSession: HarvestSession }> = ({ isOpen, onClose, onSubmit, harvestSession }) => {
+interface HarvesterData {
+    harvesters: Array<{
+        id: string;
+        name: string;
+        harvested_hectares: number;
+        plot_map?: string;
+    }>;
+    newHarvesterId: string;
+    plotMap: boolean;
+}
+
+const ManageHarvestersModal: FC<{ 
+    isOpen: boolean; 
+    onClose: () => void; 
+    onSubmit: (data: HarvesterData) => void; 
+    harvestSession: HarvestSession 
+}> = ({ isOpen, onClose, onSubmit, harvestSession }) => {
     const { control, handleSubmit, setValue, getValues, watch, trigger } = useForm({
         defaultValues: {
             harvesters: harvestSession.harvesters.map(h => ({ ...h, harvested_hectares: h.harvested_hectares || 0, plot_map: h.plot_map })),

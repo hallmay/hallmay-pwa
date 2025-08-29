@@ -34,7 +34,7 @@ const SYNC_TAG = 'sync-offline-writes';
 interface OfflineOperation {
     id?: number;
     functionName: keyof ServiceFunctionMap;
-    args: any[];
+    args: unknown[];
     timestamp: number;
 }
 
@@ -72,7 +72,7 @@ async function processOfflineQueue() {
         try {
             const serviceFunction = serviceMap[op.functionName];
             if (serviceFunction) {
-                await serviceFunction.apply(null, op.args);
+                await serviceFunction(...op.args);
 
                 await db.delete(STORE_NAME, op.id!);
                 console.log(`✅ Operación '${op.functionName}' (ID: ${op.id}) procesada con éxito.`);

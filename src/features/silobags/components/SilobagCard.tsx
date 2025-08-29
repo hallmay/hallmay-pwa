@@ -17,7 +17,7 @@ const SiloBagCard: React.FC<SiloBagCardProps> = ({ silo, onExtract, onClose }) =
     const isClosed = silo.status === 'closed';
 
     const fillPercentage = useMemo(() => {
-        if (!isClosed && silo.initial_kg > 0) {
+        if (!isClosed && silo.initial_kg > 0 && silo.current_kg > 0) {
             return (silo.current_kg / silo.initial_kg) * 100;
         }
         return 0;

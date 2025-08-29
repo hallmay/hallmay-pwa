@@ -56,7 +56,7 @@ const HarvestListView = () => {
 
     const finalFilteredSessions = getFilteredSessions();
 
-    const handleViewLot = (harvestSession: any) => {
+    const handleViewLot = (harvestSession: { id: string }) => {
         // Navegar a detalles de la sesión
         navigate(`/harvest-sessions/${harvestSession.id}/details`);
     };

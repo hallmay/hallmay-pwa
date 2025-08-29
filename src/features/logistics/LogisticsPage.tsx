@@ -10,7 +10,6 @@ import { updateLogisticsStatus } from "./services/logistics";
 import type { Logistics as LogisticsType } from "../../shared/types";
 import { PlusCircle } from "lucide-react";
 import Button from "../../shared/components/commons/Button";
-import Card from "../../shared/components/commons/Card";
 import toast from "react-hot-toast";
 import AddTruckModal from "./components/modals/AddTruckModal";
 import UpdateStatusModal from "./components/modals/UpdateStatusModal";

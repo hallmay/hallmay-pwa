@@ -22,7 +22,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({ navItems }) => {
     return (
         <aside className="hidden lg:flex fixed left-0 top-0 w-20 h-full bg-secondary p-3 flex-col items-center z-50">
             <div className="w-14 h-14 flex items-center justify-center mt-2 mb-6">
-
                 <img src={logo} alt="Logo de Hallmay" className="h-18 w-18 object-contain" />
             </div>
             <nav className="flex-1 flex flex-col space-y-3 items-center">

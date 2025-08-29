@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 
 const detectMobileOrTablet = () => {
     // 1. Verificar User Agent primero (más confiable)
-    const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+    const userAgent = navigator.userAgent || navigator.vendor || (window as { opera?: string }).opera;
 
     // Detectar móviles por User Agent
     const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;

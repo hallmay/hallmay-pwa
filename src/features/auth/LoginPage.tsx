@@ -15,7 +15,7 @@ const Login: FC = () => {
     const navigate = useNavigate();
     const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm();
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: { email: string; password: string }) => {
         try {
             await login(data.email, data.password);
             navigate('/');

@@ -34,7 +34,6 @@ export class QueryBuilder {
 
         const accessibleIds = this.user.accessibleFieldIds;
 
-        // Si el array está vacío o no existe, no se añade ninguna restricción de campo.
         if (accessibleIds && accessibleIds.length > 0) {
             this.constraints.push(where(fieldProperty, 'in', accessibleIds));
         }

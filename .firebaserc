@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "hallmay-develop"
-  }
+    "default": "hallmay-develop",
+    "dev": "hallmay-develop",
+    "prod": "hallmay-prod"
+  },
+  "targets": {},
+  "etags": {}
 }

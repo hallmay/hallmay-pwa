@@ -7,7 +7,40 @@ import type { Destination, Silobag } from "../../../../shared/types";
 import TextArea from "../../../../shared/components/form/TextArea";
 import Input from "../../../../shared/components/form/Input";
 
-const EditRegisterModal: FC<{ isOpen: boolean, onClose: () => void, onSubmit: (data: any) => void, register: any, siloBags: Silobag[], destinations: Destination[] }> = ({ isOpen, onClose, onSubmit, register, siloBags, destinations }) => {
+interface RegisterData {
+    type: string;
+    weight_kg: string;
+    humidity: string;
+    driver?: string;
+    license_plate?: string;
+    destinationId?: string;
+    ctg?: string;
+    cpe?: string;
+    siloBagId?: string;
+    location?: string;
+    observations?: string;
+}
+
+interface RegisterType {
+    type: string;
+    weight_kg: number;
+    humidity: number;
+    truck?: { driver: string; license_plate: string };
+    destination?: { id: string };
+    ctg?: string;
+    cpe?: string;
+    silo_bag?: { id: string; location: string };
+    details?: string;
+}
+
+const EditRegisterModal: FC<{ 
+    isOpen: boolean; 
+    onClose: () => void; 
+    onSubmit: (data: RegisterData) => void; 
+    register: RegisterType; 
+    siloBags: Silobag[]; 
+    destinations: Destination[] 
+}> = ({ isOpen, onClose, onSubmit, register, siloBags, destinations }) => {
     const { control, handleSubmit, formState: { errors }, setValue } = useForm({
         defaultValues: {
             type: register.type || 'truck', weight_kg: register.weight_kg || '', humidity: register.humidity || '',

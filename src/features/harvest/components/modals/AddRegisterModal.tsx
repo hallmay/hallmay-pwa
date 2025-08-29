@@ -8,7 +8,14 @@ import type { Silobag, Destination } from "../../../../shared/types";
 import Select from "../../../../shared/components/form/Select";
 import Button from "../../../../shared/components/commons/Button";
 
-export const RegisterFormFields: FC<{ control: any, errors: any, setValue: any, isEditMode: boolean, siloBags: Silobag[], destinations: Destination[] }> = ({ control, setValue, isEditMode, siloBags, destinations }) => {
+export const RegisterFormFields: FC<{ 
+    control: any; 
+    errors: any; 
+    setValue: any; 
+    isEditMode: boolean; 
+    siloBags: Silobag[]; 
+    destinations: Destination[] 
+}> = ({ control, setValue, isEditMode, siloBags, destinations }) => {
     const type = useWatch({ control, name: 'type' });
     const [siloBagMode, setSiloBagMode] = useState<'select' | 'create'>('select');
     const [showMore, setShowMore] = useState(false);
@@ -64,7 +71,28 @@ export const RegisterFormFields: FC<{ control: any, errors: any, setValue: any, 
     );
 }
 
-const AddRegisterModal: FC<{ isOpen: boolean, onClose: () => void, onSubmit: (data: any) => void, siloBags: Silobag[], destinations: Destination[] }> = ({ isOpen, onClose, onSubmit, siloBags, destinations }) => {
+interface RegisterFormData {
+    type: string;
+    weight_kg: string;
+    humidity: string;
+    driver: string;
+    license_plate: string;
+    destinationId: string;
+    ctg: string;
+    cpe: string;
+    siloBagId: string;
+    newSiloBagName: string;
+    location: string;
+    observations: string;
+}
+
+const AddRegisterModal: FC<{ 
+    isOpen: boolean; 
+    onClose: () => void; 
+    onSubmit: (data: RegisterFormData) => void; 
+    siloBags: Silobag[]; 
+    destinations: Destination[] 
+}> = ({ isOpen, onClose, onSubmit, siloBags, destinations }) => {
     const { control, handleSubmit, formState: { errors }, setValue, reset } = useForm({
         defaultValues: {
             type: 'truck', weight_kg: '', humidity: '', driver: '', license_plate: '',
@@ -78,7 +106,7 @@ const AddRegisterModal: FC<{ isOpen: boolean, onClose: () => void, onSubmit: (da
         reset();
     }
 
-    const handleOnSubmit = (data: any) => {
+    const handleOnSubmit = (data: RegisterFormData) => {
         onSubmit(data);
         reset();
     }

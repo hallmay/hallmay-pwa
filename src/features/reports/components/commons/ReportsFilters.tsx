@@ -30,7 +30,6 @@ const ReportsFilters: FC<FilterComponentProps> = ({
     const availableCrops = useMemo(() => {
         if (!sessionsForCampaign) return [];
         const unique = new Map(sessionsForCampaign.map(s => [s.crop.id, s.crop]));
-        console.log(Array.from(unique.values()))
         return Array.from(unique.values());
     }, [sessionsForCampaign]);
 

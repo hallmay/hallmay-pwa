@@ -1,4 +1,4 @@
-import { collection, doc, increment, Timestamp, writeBatch } from "firebase/firestore";
+import { collection, doc, increment, Timestamp, WriteBatch, writeBatch } from "firebase/firestore";
 import { toast } from "react-hot-toast";
 import { db } from "../../../shared/firebase/firebase";
 import type { CampaignField, Crop, Silobag, MovementType, SilobagMovement, User } from "../../../shared/types";
@@ -38,7 +38,7 @@ interface CloseSiloBagParams {
 // --- LÓGICA DE SERVICIO ---
 
 export const _prepareSiloBagCreation = (
-    batch: any,
+    batch: WriteBatch,
     siloBagData: Partial<Silobag>,
     movementType: MovementType = 'creation',
     movementId?: string
@@ -61,6 +61,7 @@ export const _prepareSiloBagCreation = (
         field: { id: siloBagData?.field?.id },
         kg_change: siloBagData.initial_kg,
         date: Timestamp.now(),
+        created_at: Timestamp.now(),
         details: movementType === 'creation' ? "Creación manual de silobolsa." : "Entrada inicial por cosecha."
     };
 
@@ -96,8 +97,9 @@ export const createSilobag = async (params: CreateSiloBagParams) => {
 
     try {
         await batch.commit();
-    } catch (error: any) {
-        if (error.code === 'unavailable' || !navigator.onLine) {
+    } catch (error) {
+        const firebaseError = error as { code?: string };
+        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
             console.warn("Modo offline detectado. Guardando 'createSilobag' en la cola.");
             await queueOfflineWrite('createSilobag', [params]);
         } else {
@@ -116,6 +118,7 @@ export const extractKgsSilobag = async (params: ExtractKgsParams) => {
         kg_change: -parseFloat(formData.kgChange),
         organization_id: currentUser.organizationId,
         date: Timestamp.now(),
+        created_at: Timestamp.now(),
         details: formData.details
     };
 
@@ -128,8 +131,9 @@ export const extractKgsSilobag = async (params: ExtractKgsParams) => {
 
     try {
         await batch.commit();
-    } catch (error: any) {
-        if (error.code === 'unavailable' || !navigator.onLine) {
+    } catch (error) {
+        const firebaseError = error as { code?: string };
+        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
             console.warn("Modo offline detectado. Guardando 'extractKgsSilobag' en la cola.");
             await queueOfflineWrite('extractKgsSilobag', [params]);
         } else {
@@ -157,6 +161,7 @@ export const closeSilobag = async (params: CloseSiloBagParams) => {
         field: { id: siloBag.field.id },
         kg_change: siloBag.current_kg,
         date: Timestamp.now(),
+        created_at: Timestamp.now(),
         details: `Cierre de silo. Motivo: ${formData.details}`
     };
     batch.set(movementRef, adjustmentMovement);
@@ -165,8 +170,9 @@ export const closeSilobag = async (params: CloseSiloBagParams) => {
 
     try {
         await batch.commit();
-    } catch (error: any) {
-        if (error.code === 'unavailable' || !navigator.onLine) {
+    } catch (error) {
+        const firebaseError = error as { code?: string };
+        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
             console.warn("Modo offline detectado. Guardando 'closeSilobag' en la cola.");
             await queueOfflineWrite('closeSilobag', [params]);
         } else {

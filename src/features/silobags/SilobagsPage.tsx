@@ -7,7 +7,6 @@ import { useSiloBags } from "./hooks/useSilobags";
 import { useCampaignFields } from "../../shared/hooks/field/useCampaignFields";
 import { useActiveCampaign } from "../../shared/hooks/campaign/useActiveCampaign";
 import Button from "../../shared/components/commons/Button";
-import Card from "../../shared/components/commons/Card";
 import { PlusCircle } from "lucide-react";
 import { useCrops } from "../../shared/hooks/crop/useCrops";
 import CreateSiloBagModal from "./components/modals/CreateSilobagModal";

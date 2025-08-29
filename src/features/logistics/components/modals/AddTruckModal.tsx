@@ -33,7 +33,15 @@ const AddTruckModal: FC<{
     const { currentUser } = useAuth();
 
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: {
+        order: string;
+        date: Date;
+        fieldId: string;
+        cropId: string;
+        driver: string;
+        company: string;
+        details: string;
+    }) => {
         const field = fields.find(cf => cf.field.id === data.fieldId)?.field;
         const crop = crops.find(c => c.id === data.cropId);
         const selectedDate = new Date(data.date);
@@ -41,6 +49,7 @@ const AddTruckModal: FC<{
         const newOrder: Partial<Logistics> = {
             order: data.order,
             date: Timestamp.fromDate(selectedDate),
+            created_at: Timestamp.now(),
             field: { id: field.id, name: field.name },
             crop: { id: crop.id, name: crop.name },
             driver: data.driver,
@@ -49,7 +58,7 @@ const AddTruckModal: FC<{
             organization_id: currentUser.organizationId,
         };
 
-        addLogisticsOrder(newOrder).catch(_error => {
+        addLogisticsOrder(newOrder).catch(() => {
             toast.error("No se pudo crear la orden de logística.");
         });
         toast.success("Orden de logística creada con éxito.");

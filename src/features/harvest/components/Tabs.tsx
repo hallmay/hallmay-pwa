@@ -8,7 +8,7 @@ interface HarvestTabsProps {
 const TabButton: FC<{ isActive: boolean; onClick: () => void; children: React.ReactNode }> = ({ isActive, onClick, children }) => (
     <button
         onClick={onClick}
-        className={`px-3 py-2 sm:px-4 font-semibold text-sm rounded-lg transition-colors ${isActive ? 'bg-primary-light text-primary-dark' : 'text-text-secondary hover:bg-gray-100'}`}
+        className={`px-3 py-2 sm:px-4 font-semibold text-sm rounded-lg transition-colors ${isActive ? 'bg-primary-darker text-white' : 'text-text-secondary hover:bg-gray-100'}`}
     >
         {children}
     </button>

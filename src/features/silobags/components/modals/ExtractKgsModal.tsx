@@ -6,11 +6,16 @@ import { AlertTriangle } from 'lucide-react';
 import Input from '../../../../shared/components/form/Input';
 import TextArea from '../../../../shared/components/form/TextArea';
 
+interface ExtractKgsData {
+    kgChange: string;
+    details: string;
+}
+
 interface ExtractKgsModalProps {
     isOpen: boolean;
     onClose: () => void;
     siloBag: Silobag;
-    onSubmit: (data: any) => Promise<void>;
+    onSubmit: (data: ExtractKgsData) => Promise<void>;
 }
 
 const ExtractKgsModal: React.FC<ExtractKgsModalProps> = ({ isOpen, onClose, siloBag, onSubmit }) => {
@@ -32,7 +37,7 @@ const ExtractKgsModal: React.FC<ExtractKgsModalProps> = ({ isOpen, onClose, silo
     // 2. Verificamos si excede el disponible
     const exceedsAvailable = parseFloat(kgChangeValue) > siloBag.current_kg;
 
-    const handleFormSubmit = async (data: any) => {
+    const handleFormSubmit = async (data: ExtractKgsData) => {
         await onSubmit(data);
         reset();
     };

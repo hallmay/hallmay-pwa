@@ -117,6 +117,7 @@ export interface SilobagMovement {
     kg_change: number;
     details?: string;
     type: MovementType
+    created_at: Timestamp;
 }
 
 export interface Truck {

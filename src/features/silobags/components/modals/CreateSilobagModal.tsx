@@ -6,12 +6,20 @@ import Select from '../../../../shared/components/form/Select';
 import Input from '../../../../shared/components/form/Input';
 import TextArea from '../../../../shared/components/form/TextArea';
 
+interface CreateSilobagData {
+    name: string;
+    fieldId: string;
+    cropId: string;
+    location: string;
+    kg: string;
+}
+
 interface CreateSiloBagModalProps {
     isOpen: boolean;
     onClose: () => void;
     fields: Partial<CampaignField>[];
     crops: Partial<Crop>[];
-    onSubmit: (data: any) => Promise<void>;
+    onSubmit: (data: CreateSilobagData) => Promise<void>;
 }
 
 const CreateSiloBagModal: React.FC<CreateSiloBagModalProps> = ({
@@ -23,7 +31,7 @@ const CreateSiloBagModal: React.FC<CreateSiloBagModalProps> = ({
 }) => {
     const { register, control, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm();
 
-    const handleFormSubmit = (data: any) => {
+    const handleFormSubmit = (data: CreateSilobagData) => {
         onSubmit(data);
         reset();
     };

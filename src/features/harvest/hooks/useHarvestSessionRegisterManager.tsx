@@ -8,13 +8,26 @@ import { addRegister, deleteRegister, updateRegister } from '../services/harvest
 export const useRegisterManager = (
     harvestSession: HarvestSession
 ) => {
+    
     const [selectedRegister, setSelectedRegister] = useState<HarvestSessionRegister | null>(null);
     const [modal, setModal] = useState<'add' | 'edit' | 'delete' | null>(null);
-
     const { siloBags } = useSiloBags({ fieldId: 'all', cropId: harvestSession.crop.id, status: 'active' });
     const { destinations } = useDestinations();
 
-    const handleAdd = useCallback(async (data: any) => {
+    const handleAdd = useCallback(async (data: {
+        type: string;
+        weight_kg: string;
+        humidity: string;
+        driver?: string;
+        license_plate?: string;
+        destinationId?: string;
+        ctg?: string;
+        cpe?: string;
+        siloBagId?: string;
+        newSiloBagName?: string;
+        location?: string;
+        observations?: string;
+    }) => {
         const formDataWithOrg = { ...data, organization_id: harvestSession.organization_id };
 
         addRegister({
@@ -29,7 +42,20 @@ export const useRegisterManager = (
         toast.success("Registro creado con éxito");
     }, [destinations, harvestSession, siloBags]);
 
-    const handleUpdate = useCallback(async (newData: any) => {
+    const handleUpdate = useCallback(async (newData: {
+        type: string;
+        weight_kg: string;
+        humidity: string;
+        driver?: string;
+        license_plate?: string;
+        destinationId?: string;
+        ctg?: string;
+        cpe?: string;
+        siloBagId?: string;
+        newSiloBagName?: string;
+        location?: string;
+        observations?: string;
+    }) => {
         if (!selectedRegister) return;
         const formDataWithOrg = { ...newData, organization_id: harvestSession.organization_id };
 

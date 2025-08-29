@@ -4,61 +4,51 @@ import { chunkArray } from "../firebase/utils";
 import type { CampaignField, User } from "../types";
 import { createSecurityQuery } from "../firebase/queryBuilder";
 
-interface PrimingMetrics {
-    totalQueries: number;
-    totalDocuments: number;
-    duration: number;
-    stage: string;
-    errors: string[];
-    timings: Record<string, number>;
-}
-
 class PrimingService {
     private user: User | null = null;
 
-    async prime(user: User): Promise<PrimingMetrics> {
+    async prime(user: User): Promise<void> {
         this.user = user;
         try {
             const lastSyncItem = localStorage.getItem('lastSync');
             const lastSyncTimestamp = lastSyncItem ? Timestamp.fromDate(new Date(lastSyncItem)) : null;
 
             if (lastSyncTimestamp) {
-                console.log(`🔄 Sincronización incremental desde: ${lastSyncTimestamp.toDate().toLocaleString()}`);
-            } else {
-                console.log('🔄 Realizando sincronización completa inicial.');
-            }
+            console.log(`🔄 Sincronización incremental desde: ${lastSyncTimestamp.toDate().toLocaleString()}`);
+        } else {
+            console.log('🔄 Realizando sincronización completa inicial.');
+        }
 
-            const baseSecurityConstraints = createSecurityQuery(this.user).build();
-            const fieldAccessConstraints = createSecurityQuery(this.user)
-                .withFieldAccess('field.id')
-                .build();
+        const baseSecurityConstraints = createSecurityQuery(this.user).build();
+        const fieldAccessConstraints = createSecurityQuery(this.user)
+            .withFieldAccess('field.id')
+            .build();
 
-            let incrementalConstraints = [...baseSecurityConstraints];
-            if (lastSyncTimestamp) {
-                incrementalConstraints.push(where('updated_at', '>', lastSyncTimestamp));
-            }
+        const incrementalConstraints = [...baseSecurityConstraints];
+        if (lastSyncTimestamp) {
+            incrementalConstraints.push(where('updated_at', '>', lastSyncTimestamp));
+        }
 
-            const [
-                activeCampaignSnap, _cropsSnap, _harvestersSnap,
-                _destinationsSnap, _usersSnap, activeSiloBagsSnap,
-                _activeLogisticsSnap
-            ] = await Promise.all([
-                getDocs(query(collection(db, 'campaigns'), ...baseSecurityConstraints, where('active', '==', true), limit(1))),
-                getDocs(query(collection(db, 'crops'), ...incrementalConstraints)),
-                getDocs(query(collection(db, 'harvesters'), ...incrementalConstraints)),
-                getDocs(query(collection(db, 'destinations'), ...incrementalConstraints)),
-                getDocs(query(collection(db, 'users'), ...incrementalConstraints)),
-                getDocs(query(collection(db, 'silo_bags'), ...fieldAccessConstraints, where('status', '==', 'active'), orderBy('date', 'desc'), limit(50))),
-                getDocs(query(collection(db, 'logistics'), ...fieldAccessConstraints, where('status', 'in', ['in-route-to-field', 'in-field']), orderBy('date', 'desc'), limit(50))),
-            ]);
+        const [
+            activeCampaignSnap,_cropsSnap,_harvestersSnap,_destinationsSnap,_usersSnap, siloBagsSnap, _activeLogisticsSnap
+        ] = await Promise.all([
+            getDocs(query(collection(db, 'campaigns'), ...baseSecurityConstraints, where('active', '==', true), limit(1))),
+            getDocs(query(collection(db, 'crops'), ...incrementalConstraints)),
+            getDocs(query(collection(db, 'harvesters'), ...incrementalConstraints)),
+            getDocs(query(collection(db, 'destinations'), ...incrementalConstraints)),
+            getDocs(query(collection(db, 'users'), ...incrementalConstraints)),
+            getDocs(query(collection(db, 'silo_bags'), ...fieldAccessConstraints, where('status', '==', 'active'), orderBy('date', 'desc'), limit(50))),
+            getDocs(query(collection(db, 'logistics'), ...fieldAccessConstraints, where('status', 'in', ['in-route-to-field', 'in-field']), orderBy('date', 'desc'), limit(50)))
+        ]);
+        
 
             const campaign = activeCampaignSnap.docs[0] ? { id: activeCampaignSnap.docs[0].id, ...activeCampaignSnap.docs[0].data() } : null;
             if (!campaign) {
-                return;
+                throw new Error('No active campaign found');
             }
 
             const campaignFieldsSnap = await this.loadCampaignFields(campaign.id, lastSyncTimestamp);
-            const allCampaignFieldIds = campaignFieldsSnap.docs.map((doc: any) => (doc.data() as CampaignField).field.id);
+            const allCampaignFieldIds = campaignFieldsSnap.docs.map((doc) => (doc.data() as CampaignField).field.id).filter((id): id is string => Boolean(id));
 
             const userAccessibleFields = this.user.accessibleFieldIds || [];
             const isAdmin = this.user.role === 'admin' || this.user.role === 'super-admin';
@@ -73,25 +63,28 @@ class PrimingService {
             ]);
 
             const allSessionsSnap = await this.loadSessionsByFields(campaign.id, relevantFieldIds, null);
-            const allSessions = allSessionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const allSessions = allSessionsSnap.docs.map(doc => ({ 
+                id: doc.id, 
+                date: doc.data().date as Timestamp,
+                ...doc.data() 
+            }));
 
-            await this.loadCriticalSubcollections(allSessions, activeSiloBagsSnap);
+            await this.loadCriticalSubcollections(allSessions, siloBagsSnap);
 
             localStorage.setItem('lastSync', new Date().toISOString());
 
-            return;
-
-        } catch (error: any) {
+        } catch (error) {
+            console.error('Error during priming:', error);
             throw error;
         }
     }
 
-    private async loadCampaignFields(campaignId: string, lastSync: Timestamp | null) {
+    private loadCampaignFields(campaignId: string, lastSync: Timestamp | null) {
         const securityConstraints = createSecurityQuery(this.user)
             .withFieldAccess('field.id')
             .build();
 
-        let finalConstraints = [...securityConstraints, where('campaign.id', '==', campaignId)];
+        const finalConstraints = [...securityConstraints, where('campaign.id', '==', campaignId)];
         if (lastSync) {
             finalConstraints.push(where('updated_at', '>', lastSync));
         }
@@ -138,7 +131,8 @@ class PrimingService {
         return { docs: results.flatMap(snap => snap.docs) };
     }
 
-    private async loadCriticalSubcollections(sessions: any[], siloBagsSnap: any) {
+    private async loadCriticalSubcollections(sessions: Array<{ id: string; date: Timestamp }>, siloBagsSnap: { docs: Array<{ id: string }> }) {
+        console.log(siloBagsSnap.docs.length)
         if (sessions.length === 0 && siloBagsSnap.docs.length === 0) return;
 
         const baseConstraints = createSecurityQuery(this.user).withFieldAccess('field.id').build();
@@ -149,7 +143,7 @@ class PrimingService {
                 .catch(() => ({ docs: [] }))
         );
 
-        const movementPromises = siloBagsSnap.docs.map((siloDoc: any) =>
+        const movementPromises = siloBagsSnap.docs.map((siloDoc) =>
             getDocs(query(collection(db, 'silo_bags', siloDoc.id, 'movements'), ...baseConstraints, orderBy('date', 'desc'), limit(10)))
                 .catch(() => ({ docs: [] }))
         );
@@ -158,7 +152,7 @@ class PrimingService {
     }
 }
 
-export const primeOfflineCache = (user: User): Promise<PrimingMetrics> => {
+export const primeOfflineCache = async (user: User): Promise<void> => {
     const priming = new PrimingService();
-    return priming.prime(user);
+    await priming.prime(user);
 };

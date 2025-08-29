@@ -10,10 +10,10 @@ import { formatNumber } from "../../shared/utils";
 import ScrollableContainer from "../../shared/components/commons/ScrollableContainer";
 
 const HarvestersTab: FC = () => {
-    const { harvestSession } = useOutletContext<any>();
+    const { harvestSession } = useOutletContext<{ harvestSession: { id: string; harvesters?: Array<{ id: string; name: string; harvested_hectares?: number }> } }>();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-    const handleEditSubmit = async (data: any) => {
+    const handleEditSubmit = async (data: { harvesters: Array<{ id: string; name: string }> }) => {
         try {
             await upsertHarvesters({
                 harvestSessionId: harvestSession.id,
@@ -47,9 +47,9 @@ const HarvestersTab: FC = () => {
                 <ScrollableContainer maxHeight="70vh" showScrollbarOnDesktop={false}>
                     <div className="space-y-4">
                         {harvestSession.harvesters && harvestSession.harvesters.length > 0 ? (
-                            harvestSession.harvesters.map((h: any, i: number) => {
+                            harvestSession.harvesters.map((h, i: number) => {
                             const contribution = totalHarvestedHectares > 0
-                                ? (h.harvested_hectares / totalHarvestedHectares) * 100
+                                ? ((h.harvested_hectares || 0) / totalHarvestedHectares) * 100
                                 : 0;
 
                             return (

@@ -16,8 +16,9 @@ export const addLogisticsOrder = async (data: Partial<Logistics>) => {
             status: 'in-route-to-field',
             created_at: Timestamp.now()
         });
-    } catch (error: any) {
-        if (error.code === 'unavailable' || !navigator.onLine) {
+    } catch (error) {
+        const firebaseError = error as { code?: string };
+        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
             await queueOfflineWrite('addLogisticsOrder', [data]);
         } else {
             throw error;
@@ -39,8 +40,9 @@ export const updateLogisticsStatus = async (id: string, newStatus: string) => {
             updated_at: Timestamp.now()
         });
 
-    } catch (error: any) {
-        if (error.code === 'unavailable' || !navigator.onLine) {
+    } catch (error) {
+        const firebaseError = error as { code?: string };
+        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
             await queueOfflineWrite('updateLogisticsStatus', [id, newStatus]);
 
         } else {

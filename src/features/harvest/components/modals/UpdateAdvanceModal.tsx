@@ -5,10 +5,15 @@ import Button from '../../../../shared/components/commons/Button';
 import Select from '../../../../shared/components/form/Select';
 import Input from '../../../../shared/components/form/Input';
 
+interface UpdateAdvanceData {
+    status: string;
+    harvested_hectares: number;
+}
+
 interface UpdateAdvanceModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: any) => void;
+    onSubmit: (data: UpdateAdvanceData) => void;
     harvestSession: HarvestSession;
 }
 

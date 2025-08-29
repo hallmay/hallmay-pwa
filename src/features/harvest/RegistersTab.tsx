@@ -13,7 +13,10 @@ import ScrollableContainer from "../../shared/components/commons/ScrollableConta
 
 const RegistersTab: FC = () => {
     // Obtenemos los datos del contexto del Outlet
-    const { registers, harvestSession } = useOutletContext<any>();
+    const { registers, harvestSession } = useOutletContext<{ 
+        registers: Array<{ id: string; [key: string]: any }>;
+        harvestSession: { id: string; [key: string]: any };
+    }>();
 
     // Centralizamos toda la lógica en el hook
     const { selectedRegister, modal, handlers, ui, siloBags, destinations } = useRegisterManager(harvestSession);

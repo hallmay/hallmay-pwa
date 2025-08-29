@@ -58,6 +58,7 @@ export const startHarvestSession = async (params: StartSessionParams) => {
         estimated_yield: formData.estimatedYield,
         campaign: { id: activeCampaign.id, name: activeCampaign.name },
         date: Timestamp.now(),
+        created_at: Timestamp.now(),
         organization_id: currentUser.organizationId,
         harvested_kgs: 0,
         status: 'pending' as HarvestStatus,
@@ -67,8 +68,9 @@ export const startHarvestSession = async (params: StartSessionParams) => {
 
     try {
         await addDoc(collection(db, 'harvest_sessions'), harvestPlotDocument);
-    } catch (error: any) {
-        if (error.code === 'unavailable' || !navigator.onLine) {
+    } catch (error) {
+        const firebaseError = error as { code?: string };
+        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
             await queueOfflineWrite('startHarvestSession', [params]);
         } else {
             throw error;
@@ -84,8 +86,9 @@ export const updateHarvestManager = async (harvestSessionId: string, newValue: H
     };
     try {
         await updateDoc(harvestPlotRef, updatePayload);
-    } catch (error: any) {
-        if (error.code === 'unavailable' || !navigator.onLine) {
+    } catch (error) {
+        const firebaseError = error as { code?: string };
+        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
             await queueOfflineWrite('updateHarvestManager', [harvestSessionId, newValue]);
         } else {
             throw error;
@@ -110,8 +113,9 @@ export const upsertHarvesters = async (params: UpsertHarvestersParams) => {
 
     try {
         await updateDoc(harvestPlotRef, updatePayload);
-    } catch (error: any) {
-        if (error.code === 'unavailable' || !navigator.onLine) {
+    } catch (error) {
+        const firebaseError = error as { code?: string };
+        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
             await queueOfflineWrite('upsertHarvesters', [params]);
         } else {
             throw error;
@@ -132,7 +136,7 @@ export const updateHarvestSessionProgress = async (
     };
     const finalSession = getSessionWithRecalculatedYields(sessionWithNewProgress);
 
-    const updatePayload: any = { // Usamos 'any' para flexibilidad con el payload dinámico
+    const updatePayload: Record<string, unknown> = {
         status: finalSession.status,
         harvested_hectares: finalSession.harvested_hectares,
         yields: finalSession.yields,
@@ -149,8 +153,9 @@ export const updateHarvestSessionProgress = async (
 
     try {
         await updateDoc(sessionRef, updatePayload);
-    } catch (error: any) {
-        if (error.code === 'unavailable' || !navigator.onLine) {
+    } catch (error) {
+        const firebaseError = error as { code?: string };
+        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
             await queueOfflineWrite('updateHarvestSessionProgress', [currentSession, newStatus, newHarvestedHectares]);
         } else {
             throw error;

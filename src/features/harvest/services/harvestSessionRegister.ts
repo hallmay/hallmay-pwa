@@ -8,14 +8,40 @@ import { queueOfflineWrite } from "../../../shared/services/offlineQueueManager"
 // --- INTERFACES PARA LOS PARÁMETROS ---
 
 interface AddRegisterParams {
-    formData: any;
+    formData: {
+        type: string;
+        weight_kg: string;
+        humidity: string;
+        driver?: string;
+        license_plate?: string;
+        destinationId?: string;
+        ctg?: string;
+        cpe?: string;
+        siloBagId?: string;
+        newSiloBagName?: string;
+        location?: string;
+        observations?: string;
+    };
     harvestSession: HarvestSession;
     siloBags: Silobag[];
     destinations: Destination[];
 }
 
 interface UpdateRegisterParams {
-    formData: any;
+    formData: {
+        type: string;
+        weight_kg: string;
+        humidity: string;
+        driver?: string;
+        license_plate?: string;
+        destinationId?: string;
+        ctg?: string;
+        cpe?: string;
+        siloBagId?: string;
+        newSiloBagName?: string;
+        location?: string;
+        observations?: string;
+    };
     originalRegister: HarvestSessionRegister;
     harvestSession: HarvestSession;
     siloBags: Silobag[];
@@ -49,7 +75,7 @@ const _buildSessionUpdate = (session: HarvestSession, kgChange: number): Partial
 /**
  * Prepara las operaciones de batch para Silobags (crear o actualizar).
  */
-const _buildSiloBagOperations = (batch: any, params: AddRegisterParams | UpdateRegisterParams, registerRef: any, kgChange: number) => {
+const _buildSiloBagOperations = (batch: WriteBatch, params: AddRegisterParams | UpdateRegisterParams, registerRef: DocumentReference, kgChange: number) => {
     const { formData, harvestSession } = params;
     if (formData.type !== 'silo_bag') return null;
 
@@ -57,9 +83,9 @@ const _buildSiloBagOperations = (batch: any, params: AddRegisterParams | UpdateR
 
     if ('originalRegister' in params) { // Es una actualización
         const { originalRegister } = params;
-        siloBagForRegister = { id: originalRegister.silo_bag.id, name: originalRegister.silo_bag.name, location: formData.location };
-        const siloRef = doc(db, 'silo_bags', originalRegister.silo_bag.id);
-        const movementRef = doc(db, `silo_bags/${originalRegister.silo_bag.id}/movements`, originalRegister.id);
+        siloBagForRegister = { id: originalRegister.silo_bag?.id, name: originalRegister.silo_bag?.name, location: formData.location };
+        const siloRef = doc(db, 'silo_bags', originalRegister.silo_bag?.id);
+        const movementRef = doc(db, `silo_bags/${originalRegister.silo_bag?.id}/movements`, originalRegister.id);
         batch.update(siloRef, { current_kg: increment(kgChange), updated_at: Timestamp.now() });
         batch.update(movementRef, { kg_change: parseFloat(formData.weight_kg), date: Timestamp.now() });
     } else { // Es una creación
@@ -68,7 +94,7 @@ const _buildSiloBagOperations = (batch: any, params: AddRegisterParams | UpdateR
             const siloBagData = {
                 name: formData.newSiloBagName, initial_kg: kgChange,
                 organization_id: harvestSession.organization_id, crop: harvestSession.crop,
-                field: harvestSession.field, location: formData.location
+                field: harvestSession.field, location: formData.location,created_at: Timestamp.now()
             } as Partial<Silobag>;
             const newSiloBagRef = _prepareSiloBagCreation(batch, siloBagData, 'harvest_entry', registerRef.id);
             siloBagForRegister = { id: newSiloBagRef.id, name: formData.newSiloBagName, location: formData.location };
@@ -79,7 +105,7 @@ const _buildSiloBagOperations = (batch: any, params: AddRegisterParams | UpdateR
             const siloRef = doc(db, 'silo_bags', silobag.id);
             const movementRef = doc(collection(db, `silo_bags/${silobag.id}/movements`), registerRef.id);
             batch.update(siloRef, { current_kg: increment(kgChange) });
-            batch.set(movementRef, { type: 'harvest_entry', kg_change: kgChange, date: Timestamp.now(), organization_id: formData.organization_id, field: { id: harvestSession.field.id }, details: "Entrada por cosecha." });
+            batch.set(movementRef, { type: 'harvest_entry', kg_change: kgChange, date: Timestamp.now(), created_at: Timestamp.now(), organization_id: formData.organization_id, field: { id: harvestSession.field.id }, details: "Entrada por cosecha." });
         }
     }
     return siloBagForRegister;
@@ -88,7 +114,7 @@ const _buildSiloBagOperations = (batch: any, params: AddRegisterParams | UpdateR
 /**
  * Construye el objeto de datos para el documento de registro.
  */
-const _buildRegisterDocument = (params: AddRegisterParams | UpdateRegisterParams, siloBagForRegister: any) => {
+const _buildRegisterDocument = (params: AddRegisterParams | UpdateRegisterParams, siloBagForRegister: { id: string; name: string; location?: string } | null) => {
     const { formData, harvestSession, destinations } = params;
     const destination = formData.type === 'truck' ? destinations.find(d => d.id === formData.destinationId) : undefined;
 
@@ -135,8 +161,9 @@ export const addRegister = async (params: AddRegisterParams) => {
     // 4. Ejecutar y manejar offline
     try {
         await batch.commit();
-    } catch (error: any) {
-        if (error.code === 'unavailable' || !navigator.onLine) {
+    } catch (error) {
+        const firebaseError = error as { code?: string };
+        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
             await queueOfflineWrite('addRegister', [params]);
         } else {
             throw error;
@@ -165,8 +192,9 @@ export const updateRegister = async (params: UpdateRegisterParams) => {
     // 4. Ejecutar y manejar offline
     try {
         await batch.commit();
-    } catch (error: any) {
-        if (error.code === 'unavailable' || !navigator.onLine) {
+    } catch (error) {
+        const firebaseError = error as { code?: string };
+        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
             await queueOfflineWrite('updateRegister', [params]);
 
         } else {
@@ -201,8 +229,9 @@ export const deleteRegister = async (params: DeleteRegisterParams) => {
     // 3. Ejecutar y manejar offline
     try {
         await batch.commit();
-    } catch (error: any) {
-        if (error.code === 'unavailable' || !navigator.onLine) {
+    } catch (error) {
+        const firebaseError = error as { code?: string };
+        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
             await queueOfflineWrite('deleteRegister', [params]);
         } else {
             throw error;
