@@ -17,8 +17,17 @@ const MovementsListMobile: FC<{ movements: SilobagMovement[] }> = ({ movements }
                         <span className="font-semibold text-text-primary"><MovementTypeBadge type={mov.type} /></span>
                         <span className="text-xs text-text-secondary">{format(mov.date.toDate(), 'dd/MM/yyyy HH:mm')}</span>
                     </div>
-                    <p className={`font-bold text-2xl mt-1 ${mov.kg_change > 0 ? 'text-green-600' : 'text-red-600'}`}>{mov.kg_change > 0 ? '+' : ''}{formatNumber(mov.kg_change)} kgs</p>
-                    <p className="text-sm text-text-secondary mt-1">{mov.details}</p>
+                    {mov.type !== 'close' && <>
+                        <p className={`text-lg font-bold ${mov.kg_change > 0 ? 'text-green-600' : 'text-red-600'}`}>{mov.kg_change > 0 ? '+' : ''}{formatNumber(mov.kg_change)}</p>
+                        <p className="text-sm text-text-secondary">kgs</p>
+                    </>
+                    }
+                    {mov.type === 'close' && mov.kg_change !== 0 &&
+                        <>
+                            <p className={`text-lg font-bold ${mov.kg_change > 0 ? 'text-red-600' : 'text-green-600'}`}>{mov.kg_change > 0 ? '-' : ''}{formatNumber(mov.kg_change)}</p>
+                            <p className="text-sm text-text-secondary">kgs</p>
+                        </>
+                    }
                 </div>
             ))}
         </div>

@@ -1,29 +1,12 @@
-import { query, collection, where, onSnapshot, documentId } from "firebase/firestore";
-import { useState, useEffect } from "react";
+import { where, documentId } from "firebase/firestore";
+import { useMemo } from "react";
 import type { DestinationSummary } from "../../../shared/types";
-import useAuth from "../../../shared/context/auth/AuthContext";
-import { db } from "../../../shared/firebase/firebase";
-import { createSecurityQuery } from "../../../shared/firebase/queryBuilder";
+import { useFirebaseCollection } from "../../../shared/hooks/useFirebaseCollection";
 
 export const useDestinationSummary = (campaignId?: string, cropId?: string, fieldId?: string, plotId?: string) => {
-    const { currentUser, loading: authLoading } = useAuth();
-    const [destinationSummary, setDestinationSummary] = useState<DestinationSummary[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (authLoading || !currentUser || !campaignId || !cropId) {
-            if (!authLoading) setLoading(false);
-            return;
-        }
-
-        setLoading(true);
-        setError(null);
-
-        const securityConstraints = createSecurityQuery(currentUser)
-            .withFieldAccess('field.id')
-            .build();
-
+    const constraints = useMemo(() => {
+        if (!campaignId || !cropId) return [];
+        
         let docId = `camp_${campaignId}_crop_${cropId}`;
         let aggregationLevel = 'crop';
 
@@ -37,29 +20,22 @@ export const useDestinationSummary = (campaignId?: string, cropId?: string, fiel
             aggregationLevel = 'plot';
         }
 
-        const destinationSummaryQuery = query(
-            collection(db, 'destination_analytics_summary'),
-            ...securityConstraints,
+        return [
             where(documentId(), ">=", docId),
             where(documentId(), "<", docId + '\uf8ff'),
             where('aggregation_level', '==', aggregationLevel)
-        );
+        ];
+    }, [campaignId, cropId, fieldId, plotId]);
 
-        const unsubscribe = onSnapshot(destinationSummaryQuery, (snapshot) => {
-            const summaryData = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...(doc.data() as Omit<DestinationSummary, 'id'>)
-            }));
-            setDestinationSummary(summaryData);
-            setLoading(false);
-        }, (err) => {
-            console.error("Error in destination_summary subscription:", err);
-            setError(err.message);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [currentUser, authLoading, campaignId, cropId, fieldId, plotId]);
+    const { data: destinationSummary, loading, error } = useFirebaseCollection<DestinationSummary>({
+        collectionName: 'destination_analytics_summary',
+        constraints,
+        securityOptions: {
+            withFieldAccess: 'field.id'
+        },
+        dependencies: [campaignId, cropId, fieldId, plotId],
+        enabled: !!campaignId && !!cropId
+    });
 
     return { destinationSummary, loading, error };
 };

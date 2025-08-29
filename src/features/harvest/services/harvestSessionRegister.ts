@@ -1,10 +1,8 @@
-import { collection, doc, Timestamp, writeBatch, increment } from "firebase/firestore";
+import { collection, doc, Timestamp, writeBatch, increment, DocumentReference, WriteBatch } from "firebase/firestore";
 import type { Destination, HarvestSession, HarvestSessionRegister, Silobag } from "../../../shared/types";
 import { db } from "../../../shared/firebase/firebase";
 import { getSessionWithRecalculatedYields } from "../../../shared/utils";
 import { _prepareSiloBagCreation } from "../../silobags/services/siloBags";
-import { queueOfflineWrite } from "../../../shared/services/offlineQueueManager";
-
 // --- INTERFACES PARA LOS PARÁMETROS ---
 
 interface AddRegisterParams {
@@ -162,12 +160,7 @@ export const addRegister = async (params: AddRegisterParams) => {
     try {
         await batch.commit();
     } catch (error) {
-        const firebaseError = error as { code?: string };
-        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
-            await queueOfflineWrite('addRegister', [params]);
-        } else {
             throw error;
-        }
     }
 };
 
@@ -193,14 +186,8 @@ export const updateRegister = async (params: UpdateRegisterParams) => {
     try {
         await batch.commit();
     } catch (error) {
-        const firebaseError = error as { code?: string };
-        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
-            await queueOfflineWrite('updateRegister', [params]);
-
-        } else {
-
-            throw error;
-        }
+        console.error("Error al actualizar el registro:", error);
+        throw error;
     }
 };
 
@@ -230,11 +217,7 @@ export const deleteRegister = async (params: DeleteRegisterParams) => {
     try {
         await batch.commit();
     } catch (error) {
-        const firebaseError = error as { code?: string };
-        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
-            await queueOfflineWrite('deleteRegister', [params]);
-        } else {
-            throw error;
-        }
+        console.error("Error al eliminar el registro:", error);
+        throw error;
     }
 };

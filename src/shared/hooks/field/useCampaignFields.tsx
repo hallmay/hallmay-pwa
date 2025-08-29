@@ -1,45 +1,23 @@
-import { useState, useEffect } from 'react';
-import useAuth from '../../context/auth/AuthContext';
 import type { CampaignField } from '../../types';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
-import { createSecurityQuery } from '../../firebase/queryBuilder';
+import { where } from 'firebase/firestore';
+import { useFirebaseCollection } from '../useFirebaseCollection';
+import { useMemo } from 'react';
 
 export const useCampaignFields = (campaignId: string) => {
-    const { currentUser, loading: authLoading } = useAuth();
-    const [campaignFields, setCampaignFields] = useState<CampaignField[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (authLoading || !currentUser || !campaignId) {
-            if (!authLoading) setLoading(false);
-            return;
-        }
-
-        const securityConstraints = createSecurityQuery(currentUser)
-            .withFieldAccess('field.id')
-            .build();
-
-        const q = query(
-            collection(db, 'campaign_fields'),
-            ...securityConstraints,
+    const constraints = useMemo(() => {
+        return [
             where('campaign.id', '==', campaignId)
-        );
+        ];
+    }, [campaignId]);
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as CampaignField }));
-            setCampaignFields(data);
-            setLoading(false);
-        }, (err) => {
-            console.error("Error en la suscripción de CampaignFields:", err);
-            setError(err.message);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-
-    }, [currentUser, authLoading, campaignId]);
+    const { data: campaignFields, loading, error } = useFirebaseCollection<CampaignField>({
+        collectionName: 'campaign_fields',
+        constraints,
+        securityOptions: {
+            withFieldAccess: 'field.id'
+        },
+        enabled: !!campaignId,
+    });
 
     return { campaignFields, loading, error };
 };

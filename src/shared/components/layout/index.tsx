@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChartColumnIncreasing, ClipboardList, Archive, Tractor, Truck } from "lucide-react";
+import { ChartColumnIncreasing, Archive, Tractor, Truck } from "lucide-react";
 import { DesktopSidebar } from './desktop/Sidebar';
 import { MobileHeader } from './mobile/Header';
 import { MobileBottomNav } from './mobile/BottomBar';
@@ -7,16 +7,15 @@ import { DesktopHeader } from './desktop/Header'
 import { Outlet } from 'react-router';
 
 const navItems = [
-    { name: 'Cosecha', icon: Tractor, path: '/' },
+    { name: 'Cosecha', icon: Tractor, path: '/' }, 
+    { name: 'Logística', icon: Truck, path: '/logistics',roles: ['admin', 'manager', 'superadmin'] },
+    { name: 'Silos', icon: Archive, path: '/silo-bags', roles: ['admin', 'manager', 'superadmin'] },
     {
         name: 'Reportes',
         icon: ChartColumnIncreasing,
         path: '/reports',
         roles: ['admin', 'field-owner', 'superadmin']
     },
-    { name: 'Campaña', icon: ClipboardList, path: '/harvest-sessions' },
-    { name: 'Logística', icon: Truck, path: '/logistics' },
-    { name: 'Silos', icon: Archive, path: '/silo-bags' },
 ];
 
 const Layout: React.FC = () => {

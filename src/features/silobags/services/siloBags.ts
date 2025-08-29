@@ -2,7 +2,6 @@ import { collection, doc, increment, Timestamp, WriteBatch, writeBatch } from "f
 import { toast } from "react-hot-toast";
 import { db } from "../../../shared/firebase/firebase";
 import type { CampaignField, Crop, Silobag, MovementType, SilobagMovement, User } from "../../../shared/types";
-import { queueOfflineWrite } from "../../../shared/services/offlineQueueManager";
 
 interface CreateSiloBagParams {
     formData: {
@@ -98,14 +97,8 @@ export const createSilobag = async (params: CreateSiloBagParams) => {
     try {
         await batch.commit();
     } catch (error) {
-        const firebaseError = error as { code?: string };
-        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
-            console.warn("Modo offline detectado. Guardando 'createSilobag' en la cola.");
-            await queueOfflineWrite('createSilobag', [params]);
-        } else {
             console.error("Error al crear el silo:", error);
             throw error;
-        }
     }
 };
 
@@ -132,14 +125,8 @@ export const extractKgsSilobag = async (params: ExtractKgsParams) => {
     try {
         await batch.commit();
     } catch (error) {
-        const firebaseError = error as { code?: string };
-        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
-            console.warn("Modo offline detectado. Guardando 'extractKgsSilobag' en la cola.");
-            await queueOfflineWrite('extractKgsSilobag', [params]);
-        } else {
             console.error("Error al registrar extracción:", error);
             throw error;
-        }
     }
 };
 
@@ -171,13 +158,7 @@ export const closeSilobag = async (params: CloseSiloBagParams) => {
     try {
         await batch.commit();
     } catch (error) {
-        const firebaseError = error as { code?: string };
-        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
-            console.warn("Modo offline detectado. Guardando 'closeSilobag' en la cola.");
-            await queueOfflineWrite('closeSilobag', [params]);
-        } else {
             console.error("Error al cerrar el silo:", error);
             throw error;
-        }
     }
 };

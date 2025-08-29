@@ -1,7 +1,6 @@
 import { collection, doc, addDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "../../../shared/firebase/firebase";
 import type { Logistics } from "../../../shared/types";
-import { queueOfflineWrite } from "../../../shared/services/offlineQueueManager";
 
 /**
  * Crea una nueva orden de logística.
@@ -17,12 +16,8 @@ export const addLogisticsOrder = async (data: Partial<Logistics>) => {
             created_at: Timestamp.now()
         });
     } catch (error) {
-        const firebaseError = error as { code?: string };
-        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
-            await queueOfflineWrite('addLogisticsOrder', [data]);
-        } else {
-            throw error;
-        }
+        console.error("Error al crear la orden de logística:", error);
+        throw error;
     }
 };
 
@@ -41,12 +36,7 @@ export const updateLogisticsStatus = async (id: string, newStatus: string) => {
         });
 
     } catch (error) {
-        const firebaseError = error as { code?: string };
-        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
-            await queueOfflineWrite('updateLogisticsStatus', [id, newStatus]);
-
-        } else {
+        console.error("Error al actualizar el estado de la logística:", error);
             throw error;
-        }
     }
 };

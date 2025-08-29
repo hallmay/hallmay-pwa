@@ -10,6 +10,7 @@ import AddRegisterModal from "./components/modals/AddRegisterModal";
 import DeleteRegisterModal from "./components/modals/DeleteRegisterModal";
 import EditRegisterModal from "./components/modals/EditRegisterModal";
 import ScrollableContainer from "../../shared/components/commons/ScrollableContainer";
+import useAuth from "../../shared/context/auth/AuthContext";
 
 const RegistersTab: FC = () => {
     // Obtenemos los datos del contexto del Outlet
@@ -17,6 +18,7 @@ const RegistersTab: FC = () => {
         registers: Array<{ id: string; [key: string]: any }>;
         harvestSession: { id: string; [key: string]: any };
     }>();
+    const {currentUser} = useAuth();
 
     // Centralizamos toda la lógica en el hook
     const { selectedRegister, modal, handlers, ui, siloBags, destinations } = useRegisterManager(harvestSession);
@@ -50,7 +52,8 @@ const RegistersTab: FC = () => {
 
             {/* Contenido de la UI */}
             <div className="space-y-6">
-                <div className="flex justify-center mt-4">
+                {currentUser?.role !== 'field-owner' &&
+                    <div className="flex justify-center mt-4">
                     <Button
                         className="w-full md:w-1/2"
                         icon={PlusCircle}
@@ -59,6 +62,7 @@ const RegistersTab: FC = () => {
                         Añadir Nuevo Registro
                     </Button>
                 </div>
+                }
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 min-h-0">
                     <h3 className="text-lg font-bold text-gray-800 mb-4">Registros de Cosecha</h3>
                     <ScrollableContainer maxHeight="65vh" showScrollbarOnDesktop={false}>

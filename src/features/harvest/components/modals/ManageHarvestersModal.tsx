@@ -64,9 +64,6 @@ const ManageHarvestersModal: FC<{
             setValue('plotMap', false);
         }
     };
-
-    console.log(watchedHarvesters)
-
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Gestionar Cosecheros">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

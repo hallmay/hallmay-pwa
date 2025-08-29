@@ -1,5 +1,5 @@
 // src/hooks/useDeviceType.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 
 const detectMobileOrTablet = () => {
     // 1. Verificar User Agent primero (más confiable)
@@ -44,14 +44,25 @@ const detectMobileOrTablet = () => {
 
     return false;
 };
-export const useDeviceType = () => {
-    const [isMobileOrTablet] = useState(detectMobileOrTablet());
 
-    useEffect(() => {
-        const handleResize = () => { };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+export const useDeviceType = () => {
+    const [isMobileOrTablet, setIsMobileOrTablet] = useState(detectMobileOrTablet());
+
+    // Memoizar el handler para evitar recreaciones
+    const handleResize = useCallback(() => {
+        const newIsMobile = detectMobileOrTablet();
+        setIsMobileOrTablet(prevState => {
+            // Solo actualizar si cambió realmente
+            return prevState !== newIsMobile ? newIsMobile : prevState;
+        });
     }, []);
 
-    return { isMobileOrTablet };
+    useEffect(() => {
+        // Solo agregar listener si realmente necesitamos detectar cambios
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [handleResize]);
+
+    // Memoizar el resultado para evitar re-renders innecesarios
+    return useMemo(() => ({ isMobileOrTablet }), [isMobileOrTablet]);
 };

@@ -11,7 +11,7 @@ export const useRegisterManager = (
     
     const [selectedRegister, setSelectedRegister] = useState<HarvestSessionRegister | null>(null);
     const [modal, setModal] = useState<'add' | 'edit' | 'delete' | null>(null);
-    const { siloBags } = useSiloBags({ fieldId: 'all', cropId: harvestSession.crop.id, status: 'active' });
+    const { siloBags } = useSiloBags({ fieldId: 'all', cropId: harvestSession.crop?.id, status: 'active' });
     const { destinations } = useDestinations();
 
     const handleAdd = useCallback(async (data: {
@@ -36,6 +36,7 @@ export const useRegisterManager = (
             siloBags,
             destinations
         }).catch(error => {
+            toast.error('Error al agregar registro');
             console.error('Error al agregar registro:', error);
         });
         setModal(null);
@@ -66,7 +67,8 @@ export const useRegisterManager = (
             siloBags,
             destinations
         }).catch(error => {
-            console.log("Error al actualizar el registro", error);
+            console.error("Error al actualizar el registro", error);
+            toast.error("Error al actualizar el registro");
         });
         setModal(null);
         toast.success("Registro actualizado con éxito.");
@@ -80,6 +82,7 @@ export const useRegisterManager = (
             harvestSession
         }).catch(error => {
             console.error('Error al eliminar registro:', error);
+            toast.error("Error al eliminar registro");
         });
         setModal(null);
         toast.success("Registro eliminado con éxito");

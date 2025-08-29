@@ -32,8 +32,17 @@ const MovementsListDesktop: FC<{ movements: SilobagMovement[] }> = ({ movements 
                                 <p className="text-sm text-text-secondary">{format(mov.date.toDate(), 'dd/MM/yyyy HH:mm')}</p>
                             </div>
                             <div className="text-right">
-                                <p className={`text-lg font-bold ${mov.kg_change > 0 ? 'text-green-600' : 'text-red-600'}`}>{mov.kg_change > 0 ? '+' : ''}{formatNumber(mov.kg_change)}</p>
-                                <p className="text-sm text-text-secondary">kgs</p>
+                                {mov.type !== 'close' && <>
+                                    <p className={`text-lg font-bold ${mov.kg_change > 0 ? 'text-green-600' : 'text-red-600'}`}>{mov.kg_change > 0 ? '+' : ''}{formatNumber(mov.kg_change)}</p>
+                                    <p className="text-sm text-text-secondary">kgs</p>
+                                </>
+                                }
+                                {mov.type === 'close' && mov.kg_change !== 0 && 
+                                <>
+                                    <p className={`text-lg font-bold ${mov.kg_change > 0 ? 'text-red-600' : 'text-green-600'}`}>{mov.kg_change > 0 ? '-' : ''}{formatNumber(mov.kg_change)}</p>
+                                    <p className="text-sm text-text-secondary">kgs</p>
+                                </>
+                                }
                             </div>
                         </div>
                     );

@@ -1,98 +1,130 @@
-import { useMemo } from 'react';
-import { Controller, useForm, useWatch } from 'react-hook-form';
-import Card from '../../shared/components/commons/Card';
-import PageHeader from '../../shared/components/layout/PageHeader';
-import { useActiveCampaign } from '../../shared/hooks/campaign/useActiveCampaign';
-import { useCampaignFields } from '../../shared/hooks/field/useCampaignFields';
-import { useActiveHarvestSessions } from './hooks/useActiveHarvestSessions';
-import PageLoader from '../../shared/components/layout/PageLoader';
-import Select from '../../shared/components/form/Select';
-import SessionsListSection from './components/SessionListSection';
+import { useCallback, useState } from "react";
+import { useNavigate } from "react-router";
+import Button from "../../shared/components/commons/Button";
+import PageHeader from "../../shared/components/layout/PageHeader";
+import Tabs from "./components/Tabs";
+import AddModal from "./components/modals/AddModal";
+import { PlusCircle } from "lucide-react";
+import { useHarvestSessionsByCampaign } from "./hooks/useHarvestSessionsByCampaign";
+import SessionSection from "./components/SessionSection";
+import SessionsFilters, { type SessionsFiltersProps } from "./components/Filters";
+import { useActiveCampaign } from "../../shared/hooks/campaign/useActiveCampaign";
+import PageLoader from "../../shared/components/layout/PageLoader";
+import useAuth from "../../shared/context/auth/AuthContext";
 
-const HarvestView = () => {
-    const { control } = useForm({
-        defaultValues: { fieldId: 'all' }
+const HarvestListView = () => {
+    const [filters, setFilters] = useState<SessionsFiltersProps>({
+        crop: 'all', field: 'all'
     });
-    const selectedFieldId = useWatch({ control, name: 'fieldId' });
+    const [activeTab, setActiveTab] = useState('all');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const navigate = useNavigate();
+    const {currentUser} = useAuth();
+    const { campaign, loading: loadingCampaign } = useActiveCampaign();
+    const { sessions, loading: loadingSessions, error } = useHarvestSessionsByCampaign(campaign?.id);
 
-    // Hooks principales
-    const { campaign, loading: loadingActiveCampaign, error: activeCampaignError } = useActiveCampaign();
-    const { campaignFields, loading: loadingCampaignFields, error: campaignFieldsError } = useCampaignFields(campaign?.id);
-    const { sessions: harvestSessions, loading: loadingSessions } = useActiveHarvestSessions(campaign?.id, selectedFieldId);
+    const handleFilterChange = useCallback((filterName: keyof SessionsFiltersProps, value: string) => {
+        setFilters(currentFilters => {
+            const newFilters = { ...currentFilters, [filterName]: value };
+            return newFilters;
+        });
+    }, []);
 
-    const fieldOptions = useMemo(() => [{ value: 'all', label: 'Todos los campos' }, ...campaignFields.map(f => ({ value: f.field.id, label: f.field.name }))], [campaignFields]);
+    const getFilteredSessions = useCallback(() => {
+        let filteredData = sessions;
 
-    const isLoading = loadingActiveCampaign || loadingCampaignFields || loadingSessions;
+        if (filters.field !== 'all') {
+            filteredData = filteredData?.filter(session => session.field.id === filters.field);
+        }
 
-    if (isLoading) {
-        return <PageLoader title="Cosecha Actual" breadcrumbs={[{ label: 'Información de cosecha' }]} />;
+        if (filters.crop !== 'all') {
+            filteredData = filteredData?.filter(session => session.crop.id === filters.crop);
+        }
+
+        if (activeTab !== 'all') {
+            const statusMap: { [key: string]: string[] } = {
+                'pending': ['pending', 'Pendiente'],
+                'in-progress': ['in-progress', 'En Progreso'],
+                'finished': ['finished', 'Finalizado']
+            };
+            const allowedStatuses = statusMap[activeTab] || [];
+            filteredData = filteredData?.filter(session => allowedStatuses.includes(session.status));
+        }
+
+        return filteredData || [];
+    }, [sessions, filters, activeTab]);
+
+    const finalFilteredSessions = getFilteredSessions();
+
+    const handleViewLot = (harvestSession: { id: string }) => {
+        // Navegar a detalles de la sesión
+        navigate(`/harvest-sessions/${harvestSession.id}/details`);
+    };
+
+    const openModal = () => {
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+    };
+
+    if (loadingCampaign) {
+        return <PageLoader title="Cosecha" breadcrumbs={[{ label: 'Cosecha' }]} message="Cargando campaña activa..." />;
     }
 
-    // Manejo de errores
-    if (activeCampaignError) {
+    if (!campaign) {
         return (
-            <div className="space-y-4">
-                <PageHeader title="Cosecha Actual" breadcrumbs={[{ label: 'Información de cosecha' }]} />
-                <Card>
-                    <p className="text-center text-red-500">Error al cargar la campaña: {activeCampaignError}</p>
-                </Card>
+            <div className="text-center py-8">
+                <p className="text-text-secondary">No hay campaña activa disponible.</p>
             </div>
         );
     }
 
-    // Sin campaña activa
-    if (!loadingActiveCampaign && !campaign) {
+    if (error) {
         return (
-            <div className="space-y-4">
-                <PageHeader title="Cosecha Actual" breadcrumbs={[{ label: 'Información de cosecha' }]} />
-                <Card>
-                    <p className="text-center text-gray-500">No hay una campaña activa configurada.</p>
-                </Card>
+            <div className="text-center py-8">
+                <p className="text-red-500">Error: {error}</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-4 lg:space-y-6">
-            <PageHeader
-                title="Cosecha Actual"
-                breadcrumbs={[{ label: 'Información de cosecha' }]}
-            />
-
-            <Card>
-
-                <h2 className="text-lg font-bold text-text-primary mb-4">Filtros</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                    <Controller
-                        name="fieldId"
-                        control={control}
-                        render={({ field }) => (
-                            <Select
-                                label="Campo"
-                                name="fieldId"
-                                placeholder={loadingCampaignFields ? "Cargando campos..." : "Todos los campos"}
-                                items={fieldOptions}
-                                value={field.value}
-                                onChange={field.onChange}
-                                disabled={loadingCampaignFields || !!campaignFieldsError}
-                            />
-                        )}
-                    />
-                    {campaignFieldsError && (
-                        <p className="text-red-500 text-sm mt-2">
-                            No se pudieron cargar los campos.
-                        </p>
-                    )}
+        <div className="space-y-6">
+            <PageHeader title="Cosecha" breadcrumbs={[{ label: `Campaña ${campaign.name}` }]}>
+                {currentUser?.role !== 'field-owner' &&
+                    <div className="w-full md:w-auto">
+                    <Button
+                        className="w-full sm:px-10 sm:py-3 sm:text-base"
+                        icon={PlusCircle}
+                        onClick={openModal}
+                    >
+                        Cosechar Lote
+                    </Button>
                 </div>
-            </Card >
+            }
+            </PageHeader>
 
-            <SessionsListSection
-                sessions={harvestSessions || []}
-                loading={isLoading}
-                selectedFieldId={selectedFieldId}
+            <SessionsFilters
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                sessionsForCampaign={sessions}
             />
-        </div >
+
+            <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
+
+            <SessionSection
+                harvestSessions={finalFilteredSessions || []}
+                onViewLot={handleViewLot}
+                loading={loadingSessions}
+            />
+
+            <AddModal
+                isOpen={isModalOpen}
+                onClose={closeModal}
+            />
+        </div>
     );
 };
 
-export default HarvestView;
+export default HarvestListView;

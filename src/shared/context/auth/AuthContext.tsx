@@ -1,5 +1,5 @@
 import { type UserCredential, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { createContext, useState, useEffect, useContext } from "react";
+import { createContext, useState, useEffect, useContext, useMemo, useCallback } from "react";
 import { auth } from "../../firebase/firebase";
 import type { User } from "../../types";
 
@@ -10,19 +10,24 @@ interface AuthContextType {
     loading: boolean
 }
 
-const AuthContext = createContext<AuthContextType>({ currentUser: null, logout: () => new Promise<void>(() => { }), login: () => new Promise<UserCredential>(() => { }), loading: true });
+const AuthContext = createContext<AuthContextType>({ 
+    currentUser: null, 
+    logout: () => new Promise<void>(() => { }), 
+    login: () => new Promise<UserCredential>(() => { }), 
+    loading: true 
+});
 
-export const AuthProvider = ({ children }) => {
-    const [currentUser, setCurrentUser] = useState(null);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const logout = () => {
+    const logout = useCallback(() => {
         return signOut(auth);
-    }
+    }, []);
 
-    const login = (email: string, password: string) => {
+    const login = useCallback((email: string, password: string) => {
         return signInWithEmailAndPassword(auth, email, password);
-    };
+    }, []);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -46,12 +51,13 @@ export const AuthProvider = ({ children }) => {
         return unsubscribe;
     }, []);
 
-    const value = {
+    // Memoizar el value del contexto
+    const value = useMemo(() => ({
         currentUser,
         login,
         logout,
         loading
-    };
+    }), [currentUser, login, logout, loading]);
 
     return (
         <AuthContext.Provider value={value}>

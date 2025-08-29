@@ -1,45 +1,17 @@
-import { useState, useEffect } from 'react';
-import useAuth from '../../context/auth/AuthContext';
+import { useMemo } from 'react';
+import { orderBy } from 'firebase/firestore';
 import type { Campaign } from '../../types';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
-import { createSecurityQuery } from '../../firebase/queryBuilder';
+import { useFirebaseCollection } from '../useFirebaseCollection';
 
 export const useCampaigns = () => {
-    const { currentUser, loading: authLoading } = useAuth();
-    const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+  const constraints = useMemo(() => [
+    orderBy('start_date', 'desc')
+  ], []);
 
-    useEffect(() => {
-        if (authLoading || !currentUser) {
-            if (!authLoading) setLoading(false);
-            return;
-        }
+  const { data: campaigns, loading, error } = useFirebaseCollection<Campaign>({
+    collectionName: 'campaigns',
+    constraints
+  });
 
-        const securityConstraints = createSecurityQuery(currentUser).build();
-
-        const campaignsQuery = query(
-            collection(db, 'campaigns'),
-            ...securityConstraints,
-            orderBy('start_date', 'desc')
-        );
-
-        const unsubscribe = onSnapshot(campaignsQuery, (snapshot) => {
-            const campaignsData = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...(doc.data() as Omit<Campaign, 'id'>)
-            }));
-            setCampaigns(campaignsData);
-            setLoading(false);
-        }, (err) => {
-            console.error("Error en la suscripción a campañas:", err);
-            setError(err.message);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [currentUser, authLoading]);
-
-    return { campaigns, loading, error };
+  return { campaigns, loading, error };
 };

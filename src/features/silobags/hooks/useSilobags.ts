@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
-import useAuth from '../../../shared/context/auth/AuthContext';
+import { useMemo } from 'react';
 import type { Silobag } from '../../../shared/types';
-import { collection, onSnapshot, query, where, QueryConstraint } from 'firebase/firestore';
-import { db } from '../../../shared/firebase/firebase';
-import { createSecurityQuery } from '../../../shared/firebase/queryBuilder';
+import { where } from 'firebase/firestore';
+import { useFirebaseCollection } from '../../../shared/hooks/useFirebaseCollection';
 
 interface SiloBagFilters {
     fieldId: string;
@@ -12,45 +10,31 @@ interface SiloBagFilters {
 }
 
 export const useSiloBags = (filters: SiloBagFilters) => {
-    const { currentUser, loading: authLoading } = useAuth();
-    const [siloBags, setSiloBags] = useState<Silobag[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (authLoading || !currentUser) {
-            if (!authLoading) setLoading(false);
-            return;
-        }
-
-        const securityConstraints = createSecurityQuery(currentUser)
-            .withFieldAccess('field.id')
-            .build();
-
-        const constraints: QueryConstraint[] = [...securityConstraints];
-
+    // Memoizar constraints para evitar re-renders
+    const constraints = useMemo(() => {
+        const queryConstraints = [];
+        
         if (filters.fieldId && filters.fieldId !== 'all') {
-            constraints.push(where('field.id', '==', filters.fieldId));
+            queryConstraints.push(where('field.id', '==', filters.fieldId));
         }
         if (filters.cropId && filters.cropId !== 'all') {
-            constraints.push(where('crop.id', '==', filters.cropId));
+            queryConstraints.push(where('crop.id', '==', filters.cropId));
         }
         if (filters.status && filters.status !== 'all') {
-            constraints.push(where('status', '==', filters.status));
+            queryConstraints.push(where('status', '==', filters.status));
         }
+        
+        return queryConstraints;
+    }, [filters.fieldId, filters.cropId, filters.status]);
 
-        const siloBagsQuery = query(collection(db, 'silo_bags'), ...constraints);
-
-        const unsubscribe = onSnapshot(siloBagsQuery, (snapshot) => {
-            setSiloBags(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Silobag })));
-            if (loading) setLoading(false);
-        }, (err) => {
-            setError(err.message);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [currentUser, authLoading, filters]);
+    const { data: siloBags, loading, error } = useFirebaseCollection<Silobag>({
+        collectionName: 'silo_bags',
+        constraints,
+        securityOptions: {
+            withFieldAccess: 'field.id'
+        },
+        dependencies: [filters.fieldId, filters.cropId, filters.status]
+    });
 
     return { siloBags, loading, error };
 };

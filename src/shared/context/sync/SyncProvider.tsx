@@ -72,7 +72,6 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
             }
             return true;
         } catch (error: any) {
-            console.log(error)
             setSyncError(error);
             toast.error('Hubo un error durante la sincronización.');
             return false;

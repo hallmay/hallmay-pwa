@@ -2,8 +2,6 @@ import { doc, updateDoc, collection, addDoc, Timestamp } from "firebase/firestor
 import type { Campaign, CampaignField, Crop, Harvester, HarvestManager, HarvestSession, HarvestStatus, Plot, User } from "../../../shared/types";
 import { db } from "../../../shared/firebase/firebase";
 import { getSessionWithRecalculatedYields } from "../../../shared/utils";
-import { queueOfflineWrite } from "../../../shared/services/offlineQueueManager";
-
 interface StartSessionParams {
     formData: {
         fieldId: string;
@@ -69,12 +67,8 @@ export const startHarvestSession = async (params: StartSessionParams) => {
     try {
         await addDoc(collection(db, 'harvest_sessions'), harvestPlotDocument);
     } catch (error) {
-        const firebaseError = error as { code?: string };
-        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
-            await queueOfflineWrite('startHarvestSession', [params]);
-        } else {
-            throw error;
-        }
+        console.error("Error al iniciar la sesión de cosecha:", error);
+        throw error;
     }
 };
 
@@ -87,12 +81,8 @@ export const updateHarvestManager = async (harvestSessionId: string, newValue: H
     try {
         await updateDoc(harvestPlotRef, updatePayload);
     } catch (error) {
-        const firebaseError = error as { code?: string };
-        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
-            await queueOfflineWrite('updateHarvestManager', [harvestSessionId, newValue]);
-        } else {
-            throw error;
-        }
+        console.error("Error al actualizar el gerente de cosecha:", error);
+        throw error;
     }
 };
 
@@ -114,12 +104,8 @@ export const upsertHarvesters = async (params: UpsertHarvestersParams) => {
     try {
         await updateDoc(harvestPlotRef, updatePayload);
     } catch (error) {
-        const firebaseError = error as { code?: string };
-        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
-            await queueOfflineWrite('upsertHarvesters', [params]);
-        } else {
-            throw error;
-        }
+        console.error("Error al actualizar los cosecheros:", error);
+        throw error;
     }
 };
 
@@ -154,11 +140,7 @@ export const updateHarvestSessionProgress = async (
     try {
         await updateDoc(sessionRef, updatePayload);
     } catch (error) {
-        const firebaseError = error as { code?: string };
-        if (firebaseError.code === 'unavailable' || !navigator.onLine) {
-            await queueOfflineWrite('updateHarvestSessionProgress', [currentSession, newStatus, newHarvestedHectares]);
-        } else {
-            throw error;
-        }
+        console.error("Error al actualizar el progreso de la sesión:", error);
+        throw error;
     }
 };

@@ -1,47 +1,24 @@
-import { useState, useEffect } from 'react';
-import useAuth from '../../context/auth/AuthContext';
+import { useMemo } from 'react';
+import { where } from 'firebase/firestore';
 import type { Campaign } from '../../types';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
+import { useFirebaseCollection } from '../useFirebaseCollection';
 
 export const useActiveCampaign = () => {
-    const { currentUser, loading: authLoading } = useAuth();
-    const [campaign, setCampaign] = useState<Campaign | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+  const constraints = useMemo(() => [
+    where('active', '==', true)
+  ], []);
 
-    useEffect(() => {
-        if (authLoading || !currentUser) return;
+  const { data: campaigns, loading, error } = useFirebaseCollection<Campaign>({
+    collectionName: 'campaigns',
+    constraints,
+    securityOptions: {}
+  });
 
-        const campaignsQuery = query(
-            collection(db, 'campaigns'),
-            where('organization_id', '==', currentUser.organizationId),
-            where('active', '==', true)
-        );
+  // Memoizar campaign individual para evitar re-renders
+  const campaign = useMemo(() => 
+    campaigns.length > 0 ? campaigns[0] : null, 
+    [campaigns]
+  );
 
-        const unsubscribe = onSnapshot(campaignsQuery,
-            (snapshot) => {
-                if (!snapshot.empty) {
-                    const campaignsData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() as Omit<Campaign, 'id'> };
-                    setCampaign(campaignsData);
-                    setLoading(false)
-                } else {
-                    setCampaign(null);
-                    setLoading(false)
-                }
-            },
-            (err) => {
-
-                setError(err.message);
-                setLoading(false);
-            }
-        );
-
-        return () => {
-            unsubscribe();
-        };
-
-    }, [currentUser, authLoading]);
-
-    return { campaign, loading, error };
+  return { campaign, loading, error };
 };

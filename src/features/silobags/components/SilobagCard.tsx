@@ -55,16 +55,14 @@ const SiloBagCard: React.FC<SiloBagCardProps> = ({ silo, onExtract, onClose }) =
                             </div>
                         </div>
 
-                        {isClosed ? (
+                        {isClosed && hasDifference ? (
                             <div className="mt-2 space-y-1.5">
-                                {hasDifference && (
                                     <div className={`inline-flex text-xs font-semibold flex items-center gap-1.5 px-2 py-0.5 rounded-full ${silo.difference_kg > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
                                         {silo.difference_kg > 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
                                         <span>
                                             {formatNumber(Math.abs(silo.difference_kg))} kg de {silo.difference_kg > 0 ? 'menos' : 'mas'}
                                         </span>
                                     </div>
-                                )}
                             </div>
                         ) : (
                             // Vista para silos ABIERTOS (barra de progreso)

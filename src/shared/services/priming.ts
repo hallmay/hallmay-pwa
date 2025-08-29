@@ -132,7 +132,6 @@ class PrimingService {
     }
 
     private async loadCriticalSubcollections(sessions: Array<{ id: string; date: Timestamp }>, siloBagsSnap: { docs: Array<{ id: string }> }) {
-        console.log(siloBagsSnap.docs.length)
         if (sessions.length === 0 && siloBagsSnap.docs.length === 0) return;
 
         const baseConstraints = createSecurityQuery(this.user).withFieldAccess('field.id').build();

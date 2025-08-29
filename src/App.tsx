@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router';
 import withRole from './features/auth/components/WithRole.tsx';
-
 const LoadingFallback = () => (
   <div className="flex justify-center items-center h-screen w-full">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-dark"></div>
@@ -15,13 +14,12 @@ const Layout = lazy(() => import('./shared/components/layout/index.tsx'));
 const ProtectedRoute = lazy(() => import('./features/auth/components/ProtectedRoute.tsx'));
 
 // Vistas Principales (Páginas)
-const HarvestView = lazy(() => import('./features/harvest/HarvestPage.tsx'));
 const Reports = lazy(() => import('./features/reports/ReportsPage.tsx'));
-const HarvestListView = lazy(() => import('./features/harvest/HarvestSessionsPage.tsx'));
 const HarvestDetail = lazy(() => import('./features/harvest/HarvestSessionDetailsPage.tsx'));
 const SiloBagsView = lazy(() => import('./features/silobags/SilobagsPage.tsx'));
 const SiloBagDetail = lazy(() => import('./features/silobags/SilobagsDetailPage.tsx'));
 const Logistics = lazy(() => import('./features/logistics/LogisticsPage.tsx'));
+const HarvestList = lazy(() => import('./features/harvest/HarvestPage.tsx'));
 
 // Secciones de Reportes (Hijos de la ruta /reports)
 const HarvestSection = lazy(() => import('./features/reports/components/harvest-report/HarvestSection.tsx'));
@@ -37,6 +35,9 @@ const SummaryTab = lazy(() => import('./features/harvest/SummaryTab.tsx'));
 export default function App() {
 
   const ReportsWithRole = withRole(Reports, ['admin', 'field-owner', 'superadmin']);
+  const LogisticsWithRole = withRole(Logistics, ['admin', 'manager', 'superadmin']);
+  const SilobagsWithRole = withRole(SiloBagsView, ['admin', 'manager', 'superadmin']);
+  const SilobagsDetailsWithRole = withRole(SiloBagDetail, ['admin', 'manager', 'superadmin']);
 
   return (
     // Suspense envuelve todas las rutas, proveyendo un fallback de carga
@@ -45,16 +46,13 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
-            <Route path="/" element={<HarvestView />} />
-
+            <Route path="/" element={<HarvestList />} />
             <Route path="reports" element={<ReportsWithRole />}>
               <Route index element={<HarvestSection />} />
               <Route path="harvests" element={<HarvestSection />} />
               <Route path="harvesters" element={<HarvestersSection />} />
               <Route path="destinations" element={<DestinationsSection />} />
             </Route>
-
-            <Route path="harvest-sessions" element={<HarvestListView />} />
             <Route path="harvest-sessions/:harvestSessionId/details" element={<HarvestDetail onBack={() => window.history.back()} />}>
               <Route index element={<RegistersTab />} />
               <Route path="summary" element={<SummaryTab />} />
@@ -62,10 +60,10 @@ export default function App() {
               <Route path="harvesters" element={<HarvestersTab />} />
             </Route>
 
-            <Route path="silo-bags" element={<SiloBagsView />} />
-            <Route path='silo-bags/:siloId' element={<SiloBagDetail />} />
+            <Route path="silo-bags" element={<SilobagsWithRole />} />
+            <Route path='silo-bags/:siloId' element={<SilobagsDetailsWithRole />} />
 
-            <Route path="logistics" element={<Logistics />} />
+            <Route path="logistics" element={<LogisticsWithRole />} />
           </Route>
         </Route>
       </Routes>
