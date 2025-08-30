@@ -21,16 +21,16 @@ export const Modal: React.FC<ModalProps> = ({ children, isOpen, onClose, title }
             document.removeEventListener('keydown', handleKeyDown);
             document.body.style.overflow = 'auto';
         };
-    }, [isOpen, onClose]);
+    }, [isOpen, onClose]) 
 
     if (!isOpen) return null;
 
     return (
         <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99] flex justify-center items-center p-4 animate-fade-in"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99] flex items-center sm:items-start justify-center p-4 animate-fade-in sm:overflow-y-auto"
             onClick={onClose} role="dialog" aria-modal="true" >
             <div
-                className="bg-surface rounded-2xl shadow-2xl p-6 w-full max-w-lg transform transition-all duration-300 animate-slide-up"
+                className="bg-surface rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-lg sm:my-8 transform transition-all duration-300 animate-slide-up"
                 onClick={e => e.stopPropagation()} >
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-text-primary">{title}</h2>

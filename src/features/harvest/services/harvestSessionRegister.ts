@@ -125,10 +125,9 @@ const _buildRegisterDocument = (params: AddRegisterParams | UpdateRegisterParams
         type: formData.type,
         details: formData.observations,
         ...(formData.type === 'truck' ? {
-            truck: { driver: formData.driver, license_plate: formData.license_plate },
+            truck: { driver: formData.driver, license_plate: formData.license_plate, ctg: formData.ctg || null, cpe: formData.cpe || null },
             destination: { id: destination.id, name: destination.name },
-            ctg: formData.ctg || null,
-            cpe: formData.cpe || null
+            
         } : {
             silo_bag: siloBagForRegister
         })

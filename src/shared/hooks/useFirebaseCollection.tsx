@@ -32,19 +32,15 @@ export function useFirebaseCollection<T = any>({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Crear un string único de dependencies para evitar referencia cambiante
   const dependencyKey = useMemo(() => {
     if (!dependencies || dependencies.length === 0) return 'no-deps';
     return JSON.stringify(dependencies);
   }, dependencies);
 
-  // Crear un key estable para constraints para evitar problemas de tamaño cambiante
   const constraintsKey = useMemo(() => JSON.stringify(constraints), [JSON.stringify(constraints)]);
 
-  // Memoizar las constraints para evitar re-renders
   const memoizedConstraints = useMemo(() => constraints, [constraintsKey]);
 
-  // Memoizar las constraints de seguridad para evitar re-renders
   const securityConstraints = useMemo(() => {
     if (!currentUser || !enabled) return [];
     
@@ -55,7 +51,6 @@ export function useFirebaseCollection<T = any>({
     return queryBuilder.build();
   }, [currentUser, securityOptions?.withFieldAccess, enabled]);
 
-  // Memoizar la query final
   const finalQuery = useMemo(() => {
     if (!currentUser || !enabled || authLoading) return null;
     

@@ -123,6 +123,9 @@ export interface SilobagMovement {
 export interface Truck {
     driver: string;
     license_plate: string;
+    ctg?: string;
+    cpe?: string;
+
 }
 export interface HarvestSessionRegister {
     id: string;

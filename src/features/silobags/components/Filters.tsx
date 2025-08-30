@@ -9,6 +9,8 @@ interface SiloBagsFiltersProps {
     onFieldChange: (fieldId: string) => void;
     selectedCrop: string;
     onCropChange: (crop: string) => void;
+    selectedStatus: string;
+    onStatusChange: (status: string) => void;
     fields: Partial<CampaignField>[];
     crops: Partial<Crop>[];
 }
@@ -18,6 +20,8 @@ const Filters: FC<SiloBagsFiltersProps> = ({
     onFieldChange,
     selectedCrop,
     onCropChange,
+    selectedStatus,
+    onStatusChange,
     fields,
     crops
 }) => {
@@ -35,6 +39,14 @@ const Filters: FC<SiloBagsFiltersProps> = ({
         <Card>
             <h2 className="text-lg font-bold text-text-primary mb-4">Filtros</h2>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <Select
+                    label="Estado"
+                    items={[{ id: 'all', name: 'Todos los Estados' }, { id: 'active', name: 'Activo' }, { id: 'closed', name: 'Cerrado' }]}
+                    name="status"
+                    placeholder="Filtrar por Estado"
+                    value={selectedStatus}
+                    onChange={(newValue) => onStatusChange(newValue as string)}
+                />
                 <Select
                     label="Campo"
                     items={fieldOptions}

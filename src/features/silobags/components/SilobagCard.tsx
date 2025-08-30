@@ -65,7 +65,6 @@ const SiloBagCard: React.FC<SiloBagCardProps> = ({ silo, onExtract, onClose }) =
                                     </div>
                             </div>
                         ) : (
-                            // Vista para silos ABIERTOS (barra de progreso)
                             <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2 overflow-hidden" title={`${fillPercentage.toFixed(0)}%`}>
                                 <div
                                     style={{ width: `${fillPercentage}%` }}

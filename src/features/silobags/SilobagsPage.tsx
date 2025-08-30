@@ -20,25 +20,26 @@ import FlexContainer from "../../shared/components/commons/FlexContainer";
 const SiloBags = () => {
     const [selectedField, setSelectedField] = useState('all');
     const [selectedCrop, setSelectedCrop] = useState('all');
+    const [selectedStatus, setSelectedStatus] = useState('all');
 
     // Hooks de datos
     const { campaign } = useActiveCampaign();
     const { campaignFields } = useCampaignFields(campaign?.id);
     const { crops } = useCrops();
-    const { siloBags, loading, error } = useSiloBags({ fieldId: selectedField, cropId: selectedCrop, status: 'all' });
+    const { siloBags, loading, error } = useSiloBags({ fieldId: selectedField, cropId: selectedCrop, status: selectedStatus });
 
     // 2. Instanciamos nuestro nuevo manager, pasándole los datos que necesita
     const manager = useSiloBagManager(campaignFields, crops);
 
 
     if (loading) {
-        return <PageLoader title="Silos" breadcrumbs={[{ label: 'Silos' }]} message="Cargando silos..." />;
+        return <PageLoader title="Silobolsas" breadcrumbs={[{ label: 'Silobolsas' }]} message="Cargando silobolsas..." />;
     }
 
     if (error) {
         return (
             <div className="space-y-6">
-                <PageHeader title="Silos" breadcrumbs={[{ label: 'Silos' }]} />
+                <PageHeader title="Silobolsas" breadcrumbs={[{ label: 'Silobolsas' }]} />
                 <div className="text-center text-red-500 py-8">Error: {error}</div>
             </div>
         );
@@ -47,7 +48,7 @@ const SiloBags = () => {
     return (
         <>
             <FlexContainer className="space-y-6 h-[calc(100vh-8rem)]">
-                <PageHeader title="Silos" breadcrumbs={[{ label: 'Silos' }]}>
+                <PageHeader title="Silobolsas" breadcrumbs={[{ label: 'Silobolsas' }]}>
                     <div className="w-full md:w-auto">
                         {/* 3. Los eventos ahora llaman a los manejadores del hook */}
                         <Button
@@ -62,6 +63,8 @@ const SiloBags = () => {
 
                 <Filters
                     selectedField={selectedField}
+                    selectedStatus={selectedStatus}
+                    onStatusChange={setSelectedStatus}
                     onFieldChange={setSelectedField}
                     fields={campaignFields || []}
                     crops={crops || []}
@@ -84,7 +87,7 @@ const SiloBags = () => {
                                 ))
                             ) : (
                                 <div className="col-span-full text-center text-text-secondary py-8">
-                                    <p>No se encontraron silos con los filtros seleccionados.</p>
+                                    <p>No se encontraron silobolsas con los filtros seleccionados.</p>
                                 </div>
                             )}
                         </div>

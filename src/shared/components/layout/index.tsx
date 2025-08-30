@@ -9,7 +9,7 @@ import { Outlet } from 'react-router';
 const navItems = [
     { name: 'Cosecha', icon: Tractor, path: '/' }, 
     { name: 'Logística', icon: Truck, path: '/logistics',roles: ['admin', 'manager', 'superadmin'] },
-    { name: 'Silos', icon: Archive, path: '/silo-bags', roles: ['admin', 'manager', 'superadmin'] },
+    { name: 'Silobolsas', icon: Archive, path: '/silo-bags', roles: ['admin', 'manager', 'superadmin'] },
     {
         name: 'Reportes',
         icon: ChartColumnIncreasing,

@@ -1,5 +1,5 @@
 // src/context/sync/SyncProvider.tsx
-import { createContext, useState, useContext, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import { createContext, useState, useContext, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { primeOfflineCache } from '../../services/priming';
 import useAuth from '../auth/AuthContext';
 import toast from 'react-hot-toast';
@@ -29,7 +29,13 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     const [syncError, setSyncError] = useState<Error | null>(null);
     const { currentUser } = useAuth();
     const { isMobileOrTablet } = useDeviceType();
-    const lastManualSyncAttempt = useRef<number>(0);
+    
+    // Inicializar lastManualSyncAttempt con valor del localStorage si existe
+    const getInitialLastManualSync = () => {
+        const saved = localStorage.getItem('lastManualSyncAttempt');
+        return saved ? parseInt(saved, 10) : 0;
+    };
+    const lastManualSyncAttempt = useRef<number>(getInitialLastManualSync());
 
     const triggerSync = useCallback(async (isManual = false): Promise<boolean> => {
         const now = Date.now();
@@ -81,20 +87,6 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
     }, [currentUser, isSyncing]);
 
     useEffect(() => {
-        const handleServiceWorkerMessage = (event: MessageEvent) => {
-            if (event.data?.type === 'SYNC_SUCCESS' && isMobileOrTablet) {
-                triggerSync(false);
-            }
-        };
-
-        navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
-
-        return () => {
-            navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
-        };
-    }, [triggerSync, isMobileOrTablet]);
-
-    useEffect(() => {
         if (currentUser && !isSyncing && isMobileOrTablet) {
             const today = new Date().toISOString().split('T')[0];
             const lastSyncDate = localStorage.getItem('lastSyncDate');
@@ -104,33 +96,36 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [currentUser, isSyncing, triggerSync, isMobileOrTablet]);
 
-    useEffect(() => {
-        const handleOnline = () => {
-            if (currentUser && !isSyncing && isMobileOrTablet) {
-                const timeSinceLastSync = lastSync ? new Date().getTime() - lastSync.getTime() : Infinity;
-                if (timeSinceLastSync > RECONNECT_STALE_THRESHOLD_MS) {
-                    triggerSync();
-                }
+    // Memoizar el handler del evento online para evitar re-renders
+    const handleOnline = useCallback(() => {
+        if (currentUser && !isSyncing && isMobileOrTablet) {
+            const timeSinceLastSync = lastSync ? new Date().getTime() - lastSync.getTime() : Infinity;
+            if (timeSinceLastSync > RECONNECT_STALE_THRESHOLD_MS) {
+                triggerSync();
             }
-        };
-        window.addEventListener('online', handleOnline);
-        return () => window.removeEventListener('online', handleOnline);
+        }
     }, [currentUser, isSyncing, lastSync, triggerSync, isMobileOrTablet]);
 
+    useEffect(() => {
+        window.addEventListener('online', handleOnline);
+        return () => window.removeEventListener('online', handleOnline);
+    }, [handleOnline]);
+
+    // Memoizar el handler de visibility change para evitar re-renders
+    const handleVisibilityChange = useCallback(async () => {
+        if (document.visibilityState === 'visible' && lastSync && !isSyncing && isMobileOrTablet) {
+            const timeSinceLastSync = new Date().getTime() - lastSync.getTime();
+
+            if (timeSinceLastSync > RECONNECT_STALE_THRESHOLD_MS) {
+                triggerSync(false);
+            }
+        }
+    }, [lastSync, isSyncing, triggerSync, isMobileOrTablet]);
 
     useEffect(() => {
-        const handleVisibilityChange = async () => {
-            if (document.visibilityState === 'visible' && lastSync && !isSyncing && isMobileOrTablet) {
-                const timeSinceLastSync = new Date().getTime() - lastSync.getTime();
-
-                if (timeSinceLastSync > RECONNECT_STALE_THRESHOLD_MS) {
-                    triggerSync(false);
-                }
-            }
-        };
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [lastSync, isSyncing, triggerSync, isMobileOrTablet]);
+    }, [handleVisibilityChange]);
 
     useEffect(() => {
         if (!currentUser) {
@@ -142,12 +137,16 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [currentUser]);
 
-    const value: SyncContextType = {
+    // Memoizar el triggerSync manual para evitar recrear la función en cada render
+    const manualTriggerSync = useCallback(() => triggerSync(true), [triggerSync]);
+
+    // Memoizar el value del contexto para evitar re-renders de los componentes que lo consumen
+    const value = useMemo((): SyncContextType => ({
         isSyncing,
         lastSync,
         syncError,
-        triggerSync: () => triggerSync(true)
-    };
+        triggerSync: manualTriggerSync
+    }), [isSyncing, lastSync, syncError, manualTriggerSync]);
 
     return (
         <SyncContext.Provider value={value}>

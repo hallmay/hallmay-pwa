@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { PlusCircle, Truck, Archive, Edit, Trash2, Scale, Droplets, MapPin, User } from "lucide-react";
+import { PlusCircle, Truck, Archive, Edit, Trash2, Scale, Droplets, MapPin, User,ClipboardList } from "lucide-react";
 import { type FC } from "react";
 import { useOutletContext } from "react-router";
 import Button from "../../shared/components/commons/Button";
@@ -72,25 +72,29 @@ const RegistersTab: FC = () => {
                                     <table className="w-full text-left text-sm">
                                         <thead className="border-b-2 border-gray-200 bg-gray-50">
                                             <tr>
-                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
-                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
-                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider text-right">Kgs</th>
-                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider">ID/Patente</th>
-                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider">Chofer</th>
-                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider">Destino</th>
-                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
+                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider text-center">Fecha</th>
+                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider text-center">Tipo</th>
+                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider text-center">Kgs</th>
+                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider text-center">ID/Patente</th>
+                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider text-center">CTG</th>
+                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider text-center">CPE</th>   
+                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider text-center">Chofer</th>
+                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider text-center">Destino</th>
+                                                <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider text-center">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
                                             {registers.map((reg: any) => (
                                                 <tr key={reg.id} className="hover:bg-gray-50 transition-colors">
-                                                    <td className="p-3 whitespace-nowrap">{format(reg.date.toDate(), 'dd/MM/yyyy HH:mm')}</td>
-                                                    <td className="p-3"><div className="flex items-center gap-2">{reg.type === 'truck' ? <Truck size={16} className="text-gray-500" /> : <Archive size={16} className="text-gray-500" />}<span>{reg.type === 'truck' ? 'Camión' : 'Silo Bolsa'}</span></div></td>
-                                                    <td className="p-3 text-right font-medium text-gray-800">{formatNumber(reg.weight_kg)}</td>
-                                                    <td className="p-3 font-mono">{reg.truck?.license_plate || reg.silo_bag?.name || '-'}</td>
-                                                    <td className="p-3">{reg.truck?.driver || '-'}</td>
-                                                    <td className="p-3">{reg.destination?.name || reg.silo_bag?.location || '-'}</td>
-                                                    <td className="p-3"><div className="flex gap-1"><Button variant="ghost" aria-label="Editar" onClick={() => ui.openModal('edit', reg)}><Edit size={16} /></Button><Button variant="ghost" aria-label="Eliminar" onClick={() => ui.openModal('delete', reg)}><Trash2 size={16} className="text-red-500 hover:text-red-700" /></Button></div></td>
+                                                    <td className="p-3 whitespace-nowrap text-center">{format(reg.date.toDate(), 'dd/MM/yyyy HH:mm')}</td>
+                                                    <td className="p-3 text-center"><div className="flex items-center justify-center gap-2">{reg.type === 'truck' ? <Truck size={16} className="text-gray-500" /> : <Archive size={16} className="text-gray-500" />}<span>{reg.type === 'truck' ? 'Camión' : 'Silo Bolsa'}</span></div></td>
+                                                    <td className="p-3 font-medium text-gray-800 text-center">{formatNumber(reg.weight_kg)}</td>
+                                                    <td className="p-3 font-mono text-center">{reg.truck?.license_plate || reg.silo_bag?.name || '-'}</td>
+                                                    <td className="p-3 text-center">{reg.truck?.ctg || '-'}</td>
+                                                    <td className="p-3 text-center">{reg.truck?.cpe || '-'}</td>
+                                                    <td className="p-3 text-center">{reg.truck?.driver || '-'}</td>
+                                                    <td className="p-3 text-center">{reg.destination?.name || reg.silo_bag?.location || '-'}</td>
+                                                    <td className="p-3 text-center"><div className="flex justify-center gap-1"><Button variant="ghost" aria-label="Editar" onClick={() => ui.openModal('edit', reg)}><Edit size={16} /></Button><Button variant="ghost" aria-label="Eliminar" onClick={() => ui.openModal('delete', reg)}><Trash2 size={16} className="text-red-500 hover:text-red-700" /></Button></div></td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -101,8 +105,8 @@ const RegistersTab: FC = () => {
                                         <Card key={reg.id} className="bg-white border">
                                             <div className="flex justify-between items-start">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="bg-blue-100 p-3 rounded-full">
-                                                        {reg.type === 'truck' ? <Truck size={20} className="text-blue-600" /> : <Archive size={20} className="text-blue-600" />}
+                                                    <div className="bg-secondary  p-3 rounded-full">
+                                                        {reg.type === 'truck' ? <Truck size={20} className="text-white" /> : <Archive size={20} className="text-white" />}
                                                     </div>
                                                     <div>
                                                         <p className="font-bold text-gray-800">{reg.truck?.license_plate || reg.silo_bag?.name}</p>
@@ -115,15 +119,17 @@ const RegistersTab: FC = () => {
                                                 </div>
                                             </div>
                                             <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4 text-sm">
-                                                <div className="flex items-center gap-2"><Scale size={14} className="text-gray-400" /><p><span className="font-semibold">{formatNumber(reg.weight_kg)}</span> kg</p></div>
-                                                <div className="flex items-center gap-2"><Droplets size={14} className="text-gray-400" /><p><span className="font-semibold">{reg.humidity || 0}</span> %</p></div>
+                                                <div className="flex items-center gap-2"><Scale size={14} className="text-blue-500" /><p><span className="font-semibold">{formatNumber(reg.weight_kg)}</span> kg</p></div>
+                                                <div className="flex items-center gap-2"><Droplets size={14} className="text-cyan-500" /><p><span className="font-semibold">{reg.humidity || 0}</span> %</p></div>
                                                 {reg.type === 'truck' ? (
                                                     <>
-                                                        <div className="flex items-center gap-2"><MapPin size={14} className="text-gray-400" /><p>{reg.destination?.name || 'N/A'}</p></div>
-                                                        <div className="flex items-center gap-2"><User size={14} className="text-gray-400" /><p>{reg.truck?.driver || 'N/A'}</p></div>
+                                                        <div className="flex items-center gap-2"><MapPin size={14} className="text-red-500" /><p>{reg.destination?.name || 'N/A'}</p></div>
+                                                        <div className="flex items-center gap-2"><User size={14} className="text-green-600" /><p>{reg.truck?.driver || 'N/A'}</p></div>
+                                                        {reg.truck.ctg && <div className="flex items-center gap-2"><ClipboardList size={14} className="text-purple-500" />CTG: {reg.truck.ctg}</div>}
+                                                        {reg.truck.cpe && <div className="flex items-center gap-2"><ClipboardList size={14} className="text-purple-500" />CPE:  {reg.truck.cpe}</div>}
                                                     </>
                                                 ) : (
-                                                    <div className="col-span-2 flex items-center gap-2"><MapPin size={14} className="text-gray-400" /><p>{reg.silo_bag?.location || 'N/A'}</p></div>
+                                                    <div className="col-span-2 flex items-center gap-2"><MapPin size={14} className="text-red-500" /><p>{reg.silo_bag?.location || 'N/A'}</p></div>
                                                 )}
                                             </div>
                                         </Card>

@@ -1,41 +1,48 @@
 // src/components/pwa/UpdateManager.tsx
+import { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { UploadCloud } from 'lucide-react';
 import Button from './Button';
 import Card from './Card';
 
 function UpdateManager() {
-    const intervalMS = 60 * 60 * 1000; // 1 hora en milisegundos
+    const [registration, setRegistration] = useState(null);
 
     const {
         needRefresh: [needRefresh],
-        updateServiceWorker,
+        updateServiceWorker
     } = useRegisterSW({
-        /**
-         * Esta función se llama una sola vez, cuando el Service Worker se registra con éxito.
-         * Aquí es el lugar ideal para configurar las comprobaciones periódicas.
-         */
         onRegistered(r) {
-            if (r) {
-                // Comprobación periódica
-                setInterval(() => {
-                    console.log('Buscando actualizaciones del Service Worker...');
-                    r.update();
-                }, intervalMS);
-
-                // Comprobación cuando la pestaña vuelve a estar visible
-                document.addEventListener('visibilitychange', () => {
-                    if (document.visibilityState === 'visible') {
-                        console.log('Pestaña visible, buscando actualizaciones...');
-                        r.update();
-                    }
-                });
-            }
+            setRegistration(r);
         },
-        onRegisterError(error) {
-            console.error('Error en el registro del Service Worker:', error);
-        }
     });
+
+    // EFECTO 1: Comprobación periódica cada hora
+    useEffect(() => {
+        if (registration) {
+            const interval = setInterval(() => {
+                registration.update();
+            }, 7200 * 1000);
+
+            return () => clearInterval(interval);
+        }
+    }, [registration]);
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                registration?.update();
+            }
+        };
+
+        if (registration) {
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            return () => {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
+        }
+    }, [registration]);
 
     if (needRefresh) {
         return (

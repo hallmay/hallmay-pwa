@@ -32,7 +32,7 @@ const SiloBagDetail: FC = () => {
     return (
         <div className="space-y-6 animate-fade-in">
             <PageHeader title="Detalle de Silo" breadcrumbs={[{ label: `Silo ${siloBag.name}` }]} />
-            <Button variant="secondary" icon={ArrowLeft} onClick={() => navigate(-1)}>Volver a Silos</Button>
+            <Button variant="secondary" icon={ArrowLeft} onClick={() => navigate(-1)}>Volver a Silobolsas</Button>
 
             <Card>
                 <SiloBagDetailsMobile siloBag={siloBag} />

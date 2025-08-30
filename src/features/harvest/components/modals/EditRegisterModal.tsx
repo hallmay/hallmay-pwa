@@ -45,7 +45,7 @@ const EditRegisterModal: FC<{
         defaultValues: {
             type: register.type || 'truck', weight_kg: register.weight_kg || '', humidity: register.humidity || '',
             driver: register.truck?.driver || '', license_plate: register.truck?.license_plate || '',
-            destinationId: register.destination?.id || '', ctg: register.ctg || '', cpe: register.cpe || '',
+            destinationId: register.destination?.id || '', ctg: register.truck?.ctg || '', cpe: register.truck?.cpe || '',
             siloBagId: register.silo_bag?.id || '', location: register.silo_bag?.location || '',
             observations: register.details || ''
         }
