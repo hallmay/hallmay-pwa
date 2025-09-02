@@ -1,13 +1,16 @@
+import { useMemo } from 'react';
 import type { Crop } from '../../types';
-
-import { useFirebaseCollection } from '../useFirebaseCollection';
+import { orderBy } from 'firebase/firestore';
+import { useFirebaseOnSnapshot } from '../useFirebaseOnSnapshot';
 
 export const useCrops = () => {
-      const { data: crops, loading, error, refetch } = useFirebaseCollection<Crop>({
-        collectionName: 'crops',
-        constraints: []
-      });
+  const constraints = useMemo(() => [orderBy('name', 'asc')], []);
 
-      return { crops, loading, error, refetch };
+  const { data: crops, loading, error } = useFirebaseOnSnapshot<Crop>({
+    collectionName: 'crops',
+    constraints,
+    
+  });
 
+  return { crops, loading, error };
 };

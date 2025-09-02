@@ -1,7 +1,7 @@
 import { where, documentId } from "firebase/firestore";
 import { useMemo } from "react";
 import type { DestinationSummary } from "../../../shared/types";
-import { useFirebaseCollection } from "../../../shared/hooks/useFirebaseCollection";
+import { useFirebaseQuery } from "../../../shared/hooks/useFirebaseQuery";
 
 export const useDestinationSummary = (campaignId?: string, cropId?: string, fieldId?: string, plotId?: string) => {
     const constraints = useMemo(() => {
@@ -27,7 +27,7 @@ export const useDestinationSummary = (campaignId?: string, cropId?: string, fiel
         ];
     }, [campaignId, cropId, fieldId, plotId]);
 
-    const { data: destinationSummary, loading, error } = useFirebaseCollection<DestinationSummary>({
+    const { data: destinationSummary, loading, error } = useFirebaseQuery<DestinationSummary>({
         collectionName: 'destination_analytics_summary',
         constraints,
         securityOptions: {

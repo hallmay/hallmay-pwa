@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { orderBy } from 'firebase/firestore';
 import type { SilobagMovement } from '../../../shared/types';
-import { useFirebaseCollection } from '../../../shared/hooks/useFirebaseCollection';
+import { useFirebaseOnSnapshot } from '../../../shared/hooks/useFirebaseOnSnapshot';
 
 export const useSiloBagMovements = (siloBagId?: string) => {
     // Memoizar constraints
@@ -9,7 +9,7 @@ export const useSiloBagMovements = (siloBagId?: string) => {
         orderBy("date", "desc")
     ], []);
 
-    const { data: movements, loading, error } = useFirebaseCollection<SilobagMovement>({
+    const { data: movements, loading, error } = useFirebaseOnSnapshot<SilobagMovement>({
         collectionName: `silo_bags/${siloBagId}/movements`,
         constraints,
         securityOptions: {

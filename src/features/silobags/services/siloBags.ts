@@ -1,7 +1,7 @@
-import { collection, doc, increment, Timestamp, WriteBatch, writeBatch } from "firebase/firestore";
 import { toast } from "react-hot-toast";
-import { db } from "../../../shared/firebase/firebase";
-import type { CampaignField, Crop, Silobag, MovementType, SilobagMovement, User } from "../../../shared/types";
+import type { CampaignField, Crop, Silobag, MovementType, User } from "../../../shared/types";
+import { FirebaseBatchOperation } from "../../../shared/services/FirebaseBatchOperation";
+import { Timestamp } from "firebase/firestore";
 
 interface CreateSiloBagParams {
     formData: {
@@ -34,131 +34,173 @@ interface CloseSiloBagParams {
     };
 }
 
-// --- LÓGICA DE SERVICIO ---
+/**
+ * Servicio simplificado para manejo de silobags
+ * Separa claramente las operaciones y elimina lógica compleja
+ */
+class SiloBagService extends FirebaseBatchOperation {
+    private readonly COLLECTION_NAME = 'silo_bags';
+    private readonly MOVEMENTS_SUBCOLLECTION = 'movements';
 
-export const _prepareSiloBagCreation = (
-    batch: WriteBatch,
-    siloBagData: Partial<Silobag>,
-    movementType: MovementType = 'creation',
-    movementId?: string
-) => {
-    const siloBagRef = doc(collection(db, "silo_bags"));
-    const movementRef = movementId ?
-        doc(db, `silo_bags/${siloBagRef.id}/movements`, movementId) :
-        doc(collection(db, `silo_bags/${siloBagRef.id}/movements`));
+    /**
+     * Encuentra y valida campo y cultivo
+     */
+    private findFieldAndCrop(fieldId: string, cropId: string, fields: Partial<CampaignField>[], crops: Partial<Crop>[]) {
+        const field = fields.find(cf => cf.field?.id === fieldId)?.field;
+        const crop = crops.find(c => c.id === cropId);
 
-    const siloBagDocument = {
-        ...siloBagData,
-        created_at: Timestamp.fromDate(new Date()),
-        current_kg: siloBagData.initial_kg,
-        status: "active",
-    };
+        if (!field || !crop) {
+            const error = "El campo o el cultivo seleccionado no son válidos.";
+            toast.error(error);
+            throw new Error(error);
+        }
 
-    const initialMovementData: Partial<SilobagMovement> = {
-        type: movementType,
-        organization_id: siloBagData.organization_id,
-        field: { id: siloBagData?.field?.id },
-        kg_change: siloBagData.initial_kg,
-        date: Timestamp.now(),
-        created_at: Timestamp.now(),
-        details: movementType === 'creation' ? "Creación manual de silobolsa." : "Entrada inicial por cosecha."
-    };
-
-    batch.set(siloBagRef, siloBagDocument);
-    batch.set(movementRef, initialMovementData);
-
-    return siloBagRef;
-};
-
-export const createSilobag = async (params: CreateSiloBagParams) => {
-    const { formData, currentUser, fields, crops } = params;
-
-    const field = fields.find(cf => cf.field?.id === formData.fieldId)?.field;
-    const crop = crops.find(c => c.id === formData.cropId);
-
-    if (!field || !crop) {
-        toast.error("El campo o el cultivo seleccionado no son válidos.");
-        throw new Error("El campo o el cultivo seleccionado no son válidos.");
+        return { field, crop };
     }
 
-    const siloBagData: Partial<Silobag> = {
-        name: formData.name,
-        location: formData.location,
-        organization_id: currentUser.organizationId,
-        initial_kg: parseFloat(formData.initialKg),
-        field: { id: field.id, name: field.name },
-        crop: { id: crop.id, name: crop.name },
-        details: formData.details
-    };
+    /**
+     * Crea un movimiento estándar
+     */
+    private createMovement(
+        siloBagId: string,
+        movementData: {
+            type: MovementType;
+            kg_change: number;
+            organization_id: string;
+            field_id: string;
+            details: string;
+        },
+        movementId?: string
+    ) {
+        const movementDoc = {
+            type: movementData.type,
+            date: Timestamp.now(),
+            organization_id: movementData.organization_id,
+            field: { id: movementData.field_id },
+            kg_change: movementData.kg_change,
+            details: movementData.details
+        };
 
-    const batch = writeBatch(db);
-    _prepareSiloBagCreation(batch, siloBagData, 'creation');
-
-    try {
-        await batch.commit();
-    } catch (error) {
-            console.error("Error al crear el silo:", error);
-            throw error;
+        const collectionPath = `${this.COLLECTION_NAME}/${siloBagId}/${this.MOVEMENTS_SUBCOLLECTION}`;
+        
+        if (movementId) {
+            this.batchCreate(collectionPath, movementDoc, movementId);
+        } else {
+            const movementRef = this.getSubcollectionRef(this.COLLECTION_NAME, siloBagId, this.MOVEMENTS_SUBCOLLECTION);
+            this.batchCreate(collectionPath, movementDoc, movementRef.id);
+        }
     }
-};
 
-export const extractKgsSilobag = async (params: ExtractKgsParams) => {
-    const { siloBag, formData, currentUser } = params;
+    /**
+     * Crea un nuevo silobag - versión simplificada
+     */
+    async createSilobag(params: CreateSiloBagParams): Promise<void> {
+        this.validateRequiredFields(params, ['formData', 'currentUser', 'fields', 'crops']);
+        
+        const { formData, currentUser, fields, crops } = params;
 
-    const exitMovement: Omit<SilobagMovement, 'id'> = {
-        type: "substract",
-        field: { id: siloBag.field.id },
-        kg_change: -parseFloat(formData.kgChange),
-        organization_id: currentUser.organizationId,
-        date: Timestamp.now(),
-        created_at: Timestamp.now(),
-        details: formData.details
-    };
+        // 1. Validar referencias
+        const { field, crop } = this.findFieldAndCrop(formData.fieldId, formData.cropId, fields, crops);
+        const initialKg = this.parseNumericValue(formData.initialKg);
 
-    const batch = writeBatch(db);
-    const siloBagRef = doc(db, 'silo_bags', siloBag.id);
-    const movementRef = doc(collection(db, `silo_bags/${siloBag.id}/movements`));
+        this.resetBatch();
 
-    batch.update(siloBagRef, { current_kg: increment(exitMovement.kg_change), updated_at: Timestamp.now() });
-    batch.set(movementRef, exitMovement);
+        // 2. Crear silobag
+        const siloBagRef = this.getDocumentReference(this.COLLECTION_NAME);
+        
+        this.batchCreate(this.COLLECTION_NAME, {
+            name: formData.name,
+            location: formData.location,
+            date: Timestamp.now(),
+            organization_id: currentUser.organizationId,
+            initial_kg: initialKg,
+            current_kg: initialKg,
+            field: { id: field.id, name: field.name },
+            crop: { id: crop.id, name: crop.name },
+            details: formData.details,
+            status: "active"
+        }, siloBagRef.id);
 
-    try {
-        await batch.commit();
-    } catch (error) {
-            console.error("Error al registrar extracción:", error);
-            throw error;
+        // 3. Crear movimiento inicial
+        this.createMovement(siloBagRef.id, {
+            type: 'creation',
+            kg_change: initialKg,
+            organization_id: currentUser.organizationId,
+            field_id: field.id!,
+            details: "Creación manual de silobolsa."
+        });
+
+        // 4. Ejecutar
+        await this.commitBatch();
     }
-};
 
-export const closeSilobag = async (params: CloseSiloBagParams) => {
-    const { siloBag, formData } = params;
-    const batch = writeBatch(db);
-    const siloBagRef = doc(db, `silo_bags/${siloBag.id}`);
+    /**
+     * Extrae kilogramos de un silobag - versión simplificada
+     */
+    async extractKgsSilobag(params: ExtractKgsParams): Promise<void> {
+        this.validateRequiredFields(params, ['siloBag', 'formData', 'currentUser']);
+        
+        const { siloBag, formData, currentUser } = params;
+        const extractKg = this.parseNumericValue(formData.kgChange);
 
-    const dataToUpdate = {
-        status: 'closed',
-        current_kg: 0,
-        difference_kg: siloBag.current_kg
-    };
+        this.resetBatch();
 
-    const movementRef = doc(collection(db, `silo_bags/${siloBag.id}/movements`));
-    const adjustmentMovement: Partial<SilobagMovement> = {
-        organization_id: siloBag.organization_id,
-        type: "close",
-        field: { id: siloBag.field.id },
-        kg_change: siloBag.current_kg,
-        date: Timestamp.now(),
-        created_at: Timestamp.now(),
-        details: `Cierre de silo. Motivo: ${formData.details}`
-    };
-    batch.set(movementRef, adjustmentMovement);
+        // 1. Actualizar peso del silobag (restar)
+        this.batchIncrement(this.COLLECTION_NAME, siloBag.id, 'current_kg', -extractKg);
 
-    batch.update(siloBagRef, dataToUpdate);
+        // 2. Crear movimiento de extracción
+        this.createMovement(siloBag.id, {
+            type: "substract",
+            kg_change: -extractKg,
+            organization_id: currentUser.organizationId,
+            field_id: siloBag.field.id,
+            details: formData.details
+        });
 
-    try {
-        await batch.commit();
-    } catch (error) {
-            console.error("Error al cerrar el silo:", error);
-            throw error;
+        // 3. Ejecutar
+        await this.commitBatch();
     }
-};
+
+    /**
+     * Cierra un silobag - versión simplificada
+     */
+    async closeSilobag(params: CloseSiloBagParams): Promise<void> {
+        this.validateRequiredFields(params, ['siloBag', 'formData']);
+        
+        const { siloBag, formData } = params;
+
+        this.resetBatch();
+
+        // 1. Cerrar silobag y registrar diferencia
+        this.batchUpdate(this.COLLECTION_NAME, siloBag.id, {
+            status: 'closed',
+            current_kg: 0,
+            difference_kg: siloBag.current_kg
+        });
+
+        // 2. Crear movimiento de cierre
+        this.createMovement(siloBag.id, {
+            type: "close",
+            kg_change: siloBag.current_kg,
+            organization_id: siloBag.organization_id,
+            field_id: siloBag.field.id,
+            details: `Cierre de silo. Motivo: ${formData.details}`
+        });
+
+        // 3. Ejecutar
+        await this.commitBatch();
+    }
+}
+
+// Crear instancia singleton del servicio
+const siloBagService = new SiloBagService();
+
+// Exportar funciones públicas manteniendo la misma API
+export const createSilobag = (params: CreateSiloBagParams) => 
+    siloBagService.createSilobag(params);
+
+export const extractKgsSilobag = (params: ExtractKgsParams) => 
+    siloBagService.extractKgsSilobag(params);
+
+export const closeSilobag = (params: CloseSiloBagParams) => 
+    siloBagService.closeSilobag(params);

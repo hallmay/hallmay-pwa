@@ -1,7 +1,7 @@
 import {  useMemo } from 'react';
 import type { HarvestSession } from '../../../shared/types';
 
-import { useFirebaseCollection } from '../../../shared/hooks/useFirebaseCollection';
+import { useFirebaseOnSnapshot } from '../../../shared/hooks/useFirebaseOnSnapshot';
 import { where } from 'firebase/firestore';
 
 export const useHarvestSessionsByCampaign = (campaignId: string) => {
@@ -12,13 +12,12 @@ export const useHarvestSessionsByCampaign = (campaignId: string) => {
                 ];
             }, [campaignId]);
         
-          const { data: sessions, loading, error } = useFirebaseCollection<HarvestSession>({
+          const { data: sessions, loading, error } = useFirebaseOnSnapshot<HarvestSession>({
             collectionName: 'harvest_sessions',
             constraints,
             securityOptions: {
               withFieldAccess: 'field.id'
             },
-            // Remover dependencies porque campaignId ya está en constraints
             enabled: !!campaignId
           });
         

@@ -8,9 +8,9 @@ export const useSiloBagManager = (fields: Partial<CampaignField>[], crops: Parti
     const [modalState, setModalState] = useState<{ type: 'create' | 'extract' | 'close' | null; data?: Silobag }>({ type: null });
     const { currentUser } = useAuth();
 
-    if (!currentUser) return;
-
+    
     const handleCreate = useCallback(async (formData: any) => {
+        if (!currentUser) return;
         createSilobag({ formData, currentUser, fields, crops }).catch(error => {
             console.error("Error al crear silobolsa:", error);
         })
@@ -19,7 +19,7 @@ export const useSiloBagManager = (fields: Partial<CampaignField>[], crops: Parti
     }, [currentUser, fields, crops]);
 
     const handleExtract = useCallback(async (formData: any) => {
-        if (!modalState.data) return;
+        if (!modalState.data || !currentUser) return;
 
         extractKgsSilobag({
             siloBag: modalState.data,
@@ -33,7 +33,7 @@ export const useSiloBagManager = (fields: Partial<CampaignField>[], crops: Parti
     }, [modalState.data, currentUser]);
 
     const handleCloseSilo = useCallback(async (formData: any) => {
-        if (!modalState.data) return;
+        if (!modalState.data || !currentUser) return;
 
         closeSilobag({ siloBag: modalState.data, formData }).catch(error => {
             console.error("Error al cerrar el silo:", error);

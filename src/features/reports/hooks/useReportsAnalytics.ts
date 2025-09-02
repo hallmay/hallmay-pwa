@@ -13,14 +13,11 @@ interface ReportsFilters {
 
 export const useReportsAnalytics = (filters: ReportsFilters) => {
 
-    // Armar parámetros de query de forma simple
     const queryParams = useMemo(() => {
-        // Si no hay campaign + crop, no hacer query
         if (!filters.campaign || !filters.crop || filters.crop === 'all') {
             return null;
         }
 
-        // Recoger solo los valores que no son 'all' o vacíos
         const params = {
             campaignId: filters.campaign,
             cropId: filters.crop,
@@ -31,7 +28,6 @@ export const useReportsAnalytics = (filters: ReportsFilters) => {
         return params;
     }, [filters.campaign, filters]);
 
-    // Usar los parámetros en los hooks existentes
     const harvestSummary = useHarvestSummary(
         queryParams?.campaignId,
         queryParams?.cropId,

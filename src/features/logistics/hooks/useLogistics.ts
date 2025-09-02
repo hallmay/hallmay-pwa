@@ -1,7 +1,7 @@
 import { endOfDay, startOfDay } from "date-fns";
 import { orderBy, where, Timestamp, QueryConstraint } from "firebase/firestore";
 import { useMemo } from "react";
-import { useFirebaseCollection } from "../../../shared/hooks/useFirebaseCollection";
+import { useFirebaseOnSnapshot } from "../../../shared/hooks/useFirebaseOnSnapshot";
 import { HarvestSession } from "../../../shared/types";
 
 export const useLogistics = (dateRange: { from: Date | null, to: Date | null }, selectedField: string) => {
@@ -20,7 +20,7 @@ export const useLogistics = (dateRange: { from: Date | null, to: Date | null }, 
         return baseConstraints;
     }, [dateRange, selectedField]);
 
-    const { data: logistics, loading, error } = useFirebaseCollection<HarvestSession>({
+    const { data: logistics, loading, error } = useFirebaseOnSnapshot<HarvestSession>({
         collectionName: 'logistics',
         constraints,
         securityOptions: {

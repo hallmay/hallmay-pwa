@@ -1,75 +1,171 @@
 import { useState, useEffect, useMemo } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, getDocFromCache, getDocFromServer, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
 import useAuth from '../context/auth/AuthContext';
 
 interface UseFirebaseDocumentOptions {
   collectionName: string;
-  documentId: string;
+  documentId: string | null | undefined;
+  dependencies?: any[];
   enabled?: boolean;
-  requireAuth?: boolean;
+  source?: 'default' | 'cache-first' | 'server-first' | 'cache-only';
+  realtime?: boolean;
 }
 
 interface UseFirebaseDocumentResult<T> {
   data: T | null;
   loading: boolean;
   error: string | null;
-  setData: (data: T | null) => void;
+  refetch: () => Promise<void>;
+  realtime?: boolean;
 }
 
 export function useFirebaseDocument<T = any>({
   collectionName,
   documentId,
+  dependencies = [],
   enabled = true,
+  source = 'cache-first',
+  realtime = false // Default: cache-first, no realtime
 }: UseFirebaseDocumentOptions): UseFirebaseDocumentResult<T> {
   const { currentUser, loading: authLoading } = useAuth();
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Memoizar la referencia del documento para evitar re-renders
-  const docRef = useMemo(() => {
-    if (!documentId || !enabled) return null;
-    return doc(db, collectionName, documentId);
-  }, [collectionName, documentId, enabled]);
+  const dependencyKey = useMemo(() => {
+    if (!dependencies || dependencies.length === 0) return 'no-deps';
+    return JSON.stringify(dependencies);
+  }, dependencies);
 
-  useEffect(() => {
-    if (authLoading || !currentUser || !enabled || !docRef || !documentId) {
-      if (!authLoading) {
-        setLoading(false);
+
+  const executeQuery = async () => {
+    if (authLoading || !currentUser || !enabled || !documentId) {
+      setLoading(false);
+      if (!documentId) {
         setData(null);
       }
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-    const unsubscribe = onSnapshot(
-      docRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          const documentData = { 
-            id: docSnap.id, 
-            ...docSnap.data() 
-          } as T;
-          setData(documentData);
-        } else {
-          console.warn(`Documento ${documentId} no existe en ${collectionName}`);
-          setError(`El documento no fue encontrado.`);
+      const docRef = doc(db, collectionName, documentId);
+      let docSnap;
+      
+      if (source === 'cache-first' || source === 'cache-only') {
+        try {
+          docSnap = await getDocFromCache(docRef);
+          
+          if (!docSnap.exists()) {
+            docSnap = await getDocFromServer(docRef);
+          }
+        } catch (cacheError) {
+          if (source === 'cache-only') {
+            throw new Error('No document available offline');
+          }
+          docSnap = await getDocFromServer(docRef);
+        }
+      } else if (source === 'server-first') {
+        try {
+          docSnap = await getDocFromServer(docRef);
+        } catch (serverError) {
+          docSnap = await getDocFromCache(docRef);
+        }
+      } else {
+        docSnap = await getDoc(docRef);
+      }
+
+      if (docSnap.exists()) {
+        const docData = {
+          id: docSnap.id,
+          ...docSnap.data()
+        } as T;
+
+        setData(docData);
+      } else {
+        setData(null);
+      }
+
+      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setLoading(false);
+    }
+  };
+
+  const refetch = async () => {
+    if (!documentId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const docRef = doc(db, collectionName, documentId);
+      
+      const docSnap = await getDocFromServer(docRef);
+      
+      if (docSnap.exists()) {
+        const docData = {
+          id: docSnap.id,
+          ...docSnap.data()
+        } as T;
+
+        setData(docData);
+
+      } else {
+        setData(null);
+      }
+
+      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (realtime) {
+      if (authLoading || !currentUser || !enabled || !documentId) {
+        setLoading(false);
+        if (!documentId) {
           setData(null);
         }
-        setLoading(false);
-      },
-      (err) => {
-        console.error(`Error en suscripción al documento ${documentId}:`, err);
-        setError(err.message);
-        setLoading(false);
+        return;
       }
-    );
 
-    return () => unsubscribe();
-  }, [docRef, currentUser, authLoading, enabled, documentId, collectionName]);
+      setLoading(true);
+      setError(null);
 
-  return { data, loading, error, setData };
+      const docRef = doc(db, collectionName, documentId);
+      
+      const unsubscribe = onSnapshot(docRef, 
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const docData = {
+              id: docSnap.id,
+              ...docSnap.data()
+            } as T;
+            setData(docData);
+          } else {
+            setData(null);
+          }
+          setLoading(false);
+        },
+        (err) => {
+          console.error(`❌ Error en realtime document ${collectionName}/${documentId}:`, err);
+          setError(err.message);
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    } else {
+      executeQuery();
+    }
+  }, [currentUser, enabled, documentId, dependencyKey, authLoading, realtime]);
+
+  return { data, loading, error, refetch };
 }

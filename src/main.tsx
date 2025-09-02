@@ -7,11 +7,13 @@ import { AuthProvider } from './shared/context/auth/AuthContext.tsx';
 import { SyncProvider } from './shared/context/sync/SyncProvider.tsx';
 import { Toaster } from 'react-hot-toast';
 import UpdateManager from './shared/components/commons/UpdateManager.tsx';
+import PWAInstallBanner from './shared/components/commons/PWAInstallBanner.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <AuthProvider>
+    <UpdateManager />
+    <PWAInstallBanner />
     <SyncProvider>
-      <UpdateManager />
       <BrowserRouter>
         <App />
       </BrowserRouter>

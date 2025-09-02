@@ -8,7 +8,7 @@ import { useHarvestSession } from "./hooks/useHarvestSession";
 import { useHarvestSessionRegisters } from "./hooks/useHarvestSessionRegisters";
 
 import PageHeader from "../../shared/components/layout/PageHeader";
-import { exportToCsv, exportToXlsx } from "../../shared/services/export";
+// export utils se cargan on-demand para evitar inflar el bundle inicial
 import { updateHarvestSessionProgress } from "./services/harvestSession";
 import UpdateAdvanceModal from "./components/modals/UpdateAdvanceModal";
 import StatusBadge from "../../shared/components/commons/StatusBadge";
@@ -45,17 +45,20 @@ const HarvestDetail: FC<HarvestDetailProps> = ({ onBack }) => {
         }
     }, [harvestSessionId, matchSummary, matchRegisters, matchHarvesters, navigate]);
 
-    const handleExport = (format: string) => {
-        if (!harvestSession && !registers) return;
+    const handleExport = async (format: string) => {
+        if (!harvestSession || !registers || registers.length === 0) return;
 
         if (format === 'csv') {
+            const { exportToCsv } = await import('../../shared/services/export');
             exportToCsv(harvestSession, registers);
         } else {
+            const { exportToXlsx } = await import('../../shared/services/export');
             exportToXlsx(harvestSession, registers);
         }
     };
 
     const handleUpdateAdvance = async (data: any) => {
+        if (!harvestSession) return;
         updateHarvestSessionProgress(harvestSession, data.status, data.harvested_hectares)
             .catch(error => {
                 console.error('Error al actualizar avance:', error);

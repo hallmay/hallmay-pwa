@@ -1,7 +1,7 @@
 import { where, documentId } from "firebase/firestore";
 import { useMemo } from "react";
 import type { HarvestersSummary } from "../../../shared/types";
-import { useFirebaseCollection } from "../../../shared/hooks/useFirebaseCollection";
+import { useFirebaseQuery } from "../../../shared/hooks/useFirebaseQuery";
 
 export const useHarvestersSummary = (campaignId?: string, cropId?: string, fieldId?: string, plotId?: string) => {
     // Memoizar constraints para evitar re-renders
@@ -28,7 +28,7 @@ export const useHarvestersSummary = (campaignId?: string, cropId?: string, field
         ];
     }, [campaignId, cropId, fieldId, plotId]);
 
-    const { data: harvestersSummary, loading, error } = useFirebaseCollection<HarvestersSummary>({
+    const { data: harvestersSummary, loading, error } = useFirebaseQuery<HarvestersSummary>({
         collectionName: 'harvester_analytics_summary',
         constraints,
         securityOptions: {

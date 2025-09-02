@@ -26,16 +26,22 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
         const saved = localStorage.getItem('lastSync');
         return saved ? new Date(saved) : null;
     });
+
     const [syncError, setSyncError] = useState<Error | null>(null);
     const { currentUser } = useAuth();
     const { isMobileOrTablet } = useDeviceType();
     
-    // Inicializar lastManualSyncAttempt con valor del localStorage si existe
     const getInitialLastManualSync = () => {
         const saved = localStorage.getItem('lastManualSyncAttempt');
         return saved ? parseInt(saved, 10) : 0;
     };
     const lastManualSyncAttempt = useRef<number>(getInitialLastManualSync());
+    
+    const getLastFailedAttempt = () => {
+        const saved = localStorage.getItem('lastFailedSyncAttempt');
+        return saved ? parseInt(saved, 10) : 0;
+    };
+    const lastFailedSyncAttempt = useRef<number>(getLastFailedAttempt());
 
     const triggerSync = useCallback(async (isManual = false): Promise<boolean> => {
         const now = Date.now();
@@ -47,6 +53,13 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
                 const futureUnlockTime = new Date(now + remainingTimeMs);
                 const friendlyTime = formatDistanceToNow(futureUnlockTime, { addSuffix: true, locale: es });
                 toast.error(`Sincronización manual disponible ${friendlyTime}.`, { duration: 5000 });
+                return false;
+            }
+        }
+
+        if (!isManual) {
+            const timeSinceLastFailedAttempt = now - lastFailedSyncAttempt.current;
+            if (timeSinceLastFailedAttempt < MANUAL_SYNC_RATE_LIMIT_MS) {
                 return false;
             }
         }
@@ -70,6 +83,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
             setLastSync(syncDate);
             localStorage.setItem('lastSync', syncDate.toISOString());
             localStorage.setItem('lastSyncDate', syncDate.toISOString().split('T')[0]);
+            localStorage.removeItem('lastFailedSyncAttempt');
 
             if (isManual) {
                 lastManualSyncAttempt.current = now;
@@ -79,7 +93,15 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
             return true;
         } catch (error: any) {
             setSyncError(error);
-            toast.error('Hubo un error durante la sincronización.');
+
+            lastFailedSyncAttempt.current = now;
+            localStorage.setItem('lastFailedSyncAttempt', now.toString());
+            
+            if (isManual) {
+                toast.error('Hubo un error durante la sincronización.');
+            } else {
+                toast.error('Hubo un error durante la sincronización.');
+            }
             return false;
         } finally {
             setIsSyncing(false);
@@ -96,7 +118,6 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [currentUser, isSyncing, triggerSync, isMobileOrTablet]);
 
-    // Memoizar el handler del evento online para evitar re-renders
     const handleOnline = useCallback(() => {
         if (currentUser && !isSyncing && isMobileOrTablet) {
             const timeSinceLastSync = lastSync ? new Date().getTime() - lastSync.getTime() : Infinity;
@@ -132,8 +153,10 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
             setLastSync(null);
             localStorage.removeItem('lastSync');
             localStorage.removeItem('lastSyncDate');
+            localStorage.removeItem('lastFailedSyncAttempt');
             setSyncError(null);
             lastManualSyncAttempt.current = 0;
+            lastFailedSyncAttempt.current = 0; // 🆕 Reset ref
         }
     }, [currentUser]);
 
@@ -145,7 +168,7 @@ export const SyncProvider = ({ children }: { children: ReactNode }) => {
         isSyncing,
         lastSync,
         syncError,
-        triggerSync: manualTriggerSync
+        triggerSync: manualTriggerSync,
     }), [isSyncing, lastSync, syncError, manualTriggerSync]);
 
     return (

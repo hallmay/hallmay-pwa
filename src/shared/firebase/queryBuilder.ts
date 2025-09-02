@@ -28,7 +28,9 @@ export class QueryBuilder {
      * @param {string} fieldProperty - El nombre de la propiedad a filtrar (ej: 'field.id').
      */
     public withFieldAccess(fieldProperty: string = 'field.id'): this {
-        if (!this.user || this.user.role === 'admin' || this.user.role === 'super-admin') {
+        const role = this.user?.role;
+        const isAdminLike = role === 'admin' || role === 'superadmin';
+        if (!this.user || isAdminLike) {
             return this; // Los admins ven todo, no se aplica filtro.
         }
 

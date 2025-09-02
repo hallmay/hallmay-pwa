@@ -10,6 +10,7 @@ export const useHarvestSession = (harvestSessionId: string) => {
         collectionName: 'harvest_sessions',
         documentId: harvestSessionId,
         enabled: !!harvestSessionId,
+        realtime: true
     });
 
     return { session, loading, error };

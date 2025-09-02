@@ -32,6 +32,8 @@ export interface Plot {
     name: string;
     field: Partial<Field>;
     hectares?: number
+    harvest_sessions?: Record<string, string>[];
+    crops?: string[];
 }
 
 export interface HarvestManager {

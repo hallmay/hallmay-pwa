@@ -1,7 +1,7 @@
 // src/pages/dashboards/Reports.tsx - Optimizado con Outlet
 import { Link, Outlet, useMatch, useNavigate } from "react-router";
 import PageHeader from "../../shared/components/layout/PageHeader";
-import { type FC, useState, useEffect, useMemo, useCallback } from "react";
+import { type FC, useState, useEffect, useMemo, useCallback, useDeferredValue } from "react";
 import Card from "../../shared/components/commons/Card";
 import { useCampaigns } from "../../shared/hooks/campaign/useCampaigns";
 import { useHarvestSessionsByCampaign } from "../harvest/hooks/useHarvestSessionsByCampaign";
@@ -15,9 +15,10 @@ const Reports: FC = () => {
     const [filters, setFilters] = useState<ReportsFiltersProps>({
         campaign: '', crop: 'all', field: 'all', plot: 'all',
     });
+    const deferredFilters = useDeferredValue(filters);
     const { campaigns, loading: campaignsLoading } = useCampaigns();
-    const { sessions: sessionsForCampaign } = useHarvestSessionsByCampaign(filters.campaign);
-    const analytics = useReportsAnalytics(filters);
+    const { sessions: sessionsForCampaign } = useHarvestSessionsByCampaign(deferredFilters.campaign);
+    const analytics = useReportsAnalytics(deferredFilters);
     const navigate = useNavigate();
 
 

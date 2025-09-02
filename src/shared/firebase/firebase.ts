@@ -1,7 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import {
     initializeFirestore,
-    CACHE_SIZE_UNLIMITED,
     persistentLocalCache,
     persistentMultipleTabManager,
 } from 'firebase/firestore';
@@ -17,10 +16,13 @@ const firebaseConfig = {
 };
 
 export const app = initializeApp(firebaseConfig);
-    export const db = initializeFirestore(app, {
-        localCache: persistentLocalCache({
-            tabManager: persistentMultipleTabManager(),
-            cacheSizeBytes: CACHE_SIZE_UNLIMITED
-        })
-    });
+
+const HARVEST_CACHE_SIZE = 40 * 1024 * 1024; // 40MB
+
+export const db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+        cacheSizeBytes: HARVEST_CACHE_SIZE
+    })
+});
 export const auth = getAuth(app);

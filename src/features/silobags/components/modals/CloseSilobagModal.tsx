@@ -34,7 +34,16 @@ const CloseSiloBagModal: React.FC<CloseSiloBagModalProps> = ({ isOpen, onClose, 
         <Modal isOpen={isOpen} onClose={handleClose} title={`Cerrar ${siloBag.name}`}>
             <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
-                    <p>Estás a punto de cambiar el estado a <span className="font-bold">"Cerrado"</span>. Esta acción no se puede deshacer.</p>
+                    <p>
+                        Estás a punto de cambiar el estado de <strong>{siloBag.name}</strong> a <span className="font-bold">"Cerrado"</span>.
+                        {siloBag.current_kg > 0 && (
+                            <p> El silo contiene <strong className="text-orange-700">{siloBag.current_kg.toLocaleString()} kg</strong>.</p>
+                        )}
+                        {siloBag.current_kg === 0 && (
+                            <p> El silo está vacío (0 kg).</p>
+                        )}
+                    </p>
+                    <p className="mt-2 font-medium">⚠️ Esta acción no se puede deshacer.</p>
                 </div>
                 <Controller
                     name="details"

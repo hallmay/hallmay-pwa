@@ -1,15 +1,12 @@
 import type { Destination } from '../../types';
-
-
-import { useFirebaseCollection } from '../useFirebaseCollection';
+import { useFirebaseOnSnapshot } from '../useFirebaseOnSnapshot';
 
 export const useDestinations = () => {
+  const { data: destinations, loading, error } = useFirebaseOnSnapshot<Destination>({
+    collectionName: 'destinations',
+    constraints: [],
     
-    
-      const { data: destinations, loading, error } = useFirebaseCollection<Destination>({
-        collectionName: 'destinations',
-        constraints: []
-      });
+  });
 
-    return { destinations, loading, error };
+  return { destinations, loading, error };
 };

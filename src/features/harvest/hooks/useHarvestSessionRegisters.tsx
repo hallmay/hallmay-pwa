@@ -1,7 +1,7 @@
 import { orderBy } from "firebase/firestore";
 import { useMemo } from "react";
-import { useFirebaseCollection } from "../../../shared/hooks/useFirebaseCollection";
-import { HarvestSession } from "../../../shared/types";
+import { useFirebaseOnSnapshot } from "../../../shared/hooks/useFirebaseOnSnapshot";
+import { HarvestSessionRegister } from "../../../shared/types";
 
 
 export const useHarvestSessionRegisters = (harvestSessionId: string) => {
@@ -11,7 +11,7 @@ export const useHarvestSessionRegisters = (harvestSessionId: string) => {
         ];
     }, []);
 
-    const { data: registers, loading, error } = useFirebaseCollection<HarvestSession>({
+    const { data: registers, loading, error } = useFirebaseOnSnapshot<HarvestSessionRegister>({
         collectionName: `harvest_sessions/${harvestSessionId}/registers`,
         constraints,
         securityOptions: {

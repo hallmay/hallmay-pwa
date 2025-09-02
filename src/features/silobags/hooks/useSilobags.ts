@@ -1,39 +1,46 @@
 import { useMemo } from 'react';
 import type { Silobag } from '../../../shared/types';
-import { where } from 'firebase/firestore';
-import { useFirebaseCollection } from '../../../shared/hooks/useFirebaseCollection';
+import { where, orderBy } from 'firebase/firestore';
+import { useFirebaseOnSnapshot } from '../../../shared/hooks/useFirebaseOnSnapshot';
 
 interface SiloBagFilters {
-    fieldId: string;
-    cropId: string;
-    status: string;
+    fieldId?: string | null;
+    cropId?: string | null;
+    status?: string | null;
 }
 
-export const useSiloBags = (filters: SiloBagFilters) => {
-    // Memoizar constraints para evitar re-renders
+export const useSiloBags = (filters: SiloBagFilters = {}) => {
+    const memoizedFilters = useMemo(() => ({
+        fieldId: filters.fieldId || 'all',
+        cropId: filters.cropId || 'all',
+        status: filters.status || 'all'
+    }), [filters.fieldId, filters.cropId, filters.status]);
+
     const constraints = useMemo(() => {
         const queryConstraints = [];
         
-        if (filters.fieldId && filters.fieldId !== 'all') {
-            queryConstraints.push(where('field.id', '==', filters.fieldId));
+        if (memoizedFilters.fieldId && memoizedFilters.fieldId !== 'all') {
+            queryConstraints.push(where('field.id', '==', memoizedFilters.fieldId));
         }
-        if (filters.cropId && filters.cropId !== 'all') {
-            queryConstraints.push(where('crop.id', '==', filters.cropId));
+        if (memoizedFilters.cropId && memoizedFilters.cropId !== 'all') {
+            queryConstraints.push(where('crop.id', '==', memoizedFilters.cropId));
         }
-        if (filters.status && filters.status !== 'all') {
-            queryConstraints.push(where('status', '==', filters.status));
+        if (memoizedFilters.status && memoizedFilters.status !== 'all') {
+            queryConstraints.push(where('status', '==', memoizedFilters.status));
         }
+
+        queryConstraints.push(orderBy('date', 'desc'));
         
         return queryConstraints;
-    }, [filters.fieldId, filters.cropId, filters.status]);
+    }, [memoizedFilters.fieldId, memoizedFilters.cropId, memoizedFilters.status]);
 
-    const { data: siloBags, loading, error } = useFirebaseCollection<Silobag>({
+    const { data: siloBags, loading, error } = useFirebaseOnSnapshot<Silobag>({
         collectionName: 'silo_bags',
         constraints,
         securityOptions: {
             withFieldAccess: 'field.id'
         },
-        dependencies: [filters.fieldId, filters.cropId, filters.status]
+        dependencies: [memoizedFilters.fieldId, memoizedFilters.cropId, memoizedFilters.status],
     });
 
     return { siloBags, loading, error };

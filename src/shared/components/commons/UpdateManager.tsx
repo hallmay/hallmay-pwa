@@ -17,17 +17,6 @@ function UpdateManager() {
         },
     });
 
-    // EFECTO 1: Comprobación periódica cada hora
-    useEffect(() => {
-        if (registration) {
-            const interval = setInterval(() => {
-                registration.update();
-            }, 7200 * 1000);
-
-            return () => clearInterval(interval);
-        }
-    }, [registration]);
-
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {

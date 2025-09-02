@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { where } from 'firebase/firestore';
 import type { Plot } from '../../types';
-import { useFirebaseCollection } from '../useFirebaseCollection';
+import { useFirebaseOnSnapshot } from '../useFirebaseOnSnapshot';
 
 export const usePlots = (fieldId: string) => {
   const constraints = useMemo(() => 
@@ -9,13 +9,12 @@ export const usePlots = (fieldId: string) => {
     [fieldId]
   );
 
-  const { data: plots, loading, error } = useFirebaseCollection<Plot>({
+  const { data: plots, loading, error } = useFirebaseOnSnapshot<Plot>({
     collectionName: 'plots',
     constraints,
     securityOptions: {
       withFieldAccess: 'field.id'
     },
-    dependencies: [fieldId],
     enabled: !!fieldId
   });
 

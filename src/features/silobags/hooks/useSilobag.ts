@@ -11,6 +11,7 @@ export const useSiloBag = (siloBagId: string) => {
             collectionName: 'silo_bags',
             documentId: siloBagId,
             enabled: !!siloBagId,
+            realtime: true
         });
     
         return { siloBag, loading, error };

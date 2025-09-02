@@ -1,5 +1,5 @@
 // src/pages/silobags/Silobags.tsx
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import Filters from "./components/Filters";
 import SiloBagCard from "./components/SilobagCard";
 import PageHeader from "../../shared/components/layout/PageHeader";
@@ -9,13 +9,15 @@ import { useActiveCampaign } from "../../shared/hooks/campaign/useActiveCampaign
 import Button from "../../shared/components/commons/Button";
 import { PlusCircle } from "lucide-react";
 import { useCrops } from "../../shared/hooks/crop/useCrops";
-import CreateSiloBagModal from "./components/modals/CreateSilobagModal";
-import ExtractKgsModal from "./components/modals/ExtractKgsModal";
-import CloseSiloBagModal from "./components/modals/CloseSilobagModal";
 import { useSiloBagManager } from "./hooks/useSilobagManager";
 import PageLoader from "../../shared/components/layout/PageLoader";
 import ScrollableContainer from "../../shared/components/commons/ScrollableContainer";
 import FlexContainer from "../../shared/components/commons/FlexContainer";
+
+// Lazy load modals
+const CreateSiloBagModal = lazy(() => import("./components/modals/CreateSilobagModal"));
+const ExtractKgsModal = lazy(() => import("./components/modals/ExtractKgsModal"));
+const CloseSiloBagModal = lazy(() => import("./components/modals/CloseSilobagModal"));
 
 const SiloBags = () => {
     const [selectedField, setSelectedField] = useState('all');
@@ -95,16 +97,20 @@ const SiloBags = () => {
                 </div>
             </FlexContainer>
             
-            <CreateSiloBagModal
-                isOpen={manager?.modalState.type === 'create'}
-                onClose={manager?.closeModal}
-                onSubmit={manager?.handlers.create}
-                fields={campaignFields || []}
-                crops={crops || []}
-            />
+            {manager?.modalState.type === 'create' && (
+                <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"><div className="bg-white p-4 rounded">Cargando...</div></div>}>
+                    <CreateSiloBagModal
+                        isOpen={true}
+                        onClose={manager.closeModal}
+                        onSubmit={manager.handlers.create}
+                        fields={campaignFields || []}
+                        crops={crops || []}
+                    />
+                </Suspense>
+            )}
 
             {manager?.modalState.data && (
-                <>
+                <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"><div className="bg-white p-4 rounded">Cargando...</div></div>}>
                     <ExtractKgsModal
                         isOpen={manager?.modalState.type === 'extract'}
                         onClose={manager?.closeModal}
@@ -117,7 +123,7 @@ const SiloBags = () => {
                         siloBag={manager?.modalState.data}
                         onSubmit={manager?.handlers.close} 
                     />
-                </>
+                </Suspense>
             )}
         </>
     );

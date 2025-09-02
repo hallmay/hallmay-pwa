@@ -4,7 +4,7 @@ import { MinusCircle, Archive, Lock, TrendingUp, TrendingDown } from 'lucide-rea
 import Card from '../../../shared/components/commons/Card';
 import { formatNumber } from '../../../shared/utils';
 import Button from '../../../shared/components/commons/Button';
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import type { Silobag } from '../../../shared/types';
 
 interface SiloBagCardProps {
@@ -13,7 +13,7 @@ interface SiloBagCardProps {
     onClose: (e: React.MouseEvent) => void;
 }
 
-const SiloBagCard: React.FC<SiloBagCardProps> = ({ silo, onExtract, onClose }) => {
+const SiloBagCard = memo<SiloBagCardProps>(({ silo, onExtract, onClose }) => {
     const isClosed = silo.status === 'closed';
 
     const fillPercentage = useMemo(() => {
@@ -102,6 +102,8 @@ const SiloBagCard: React.FC<SiloBagCardProps> = ({ silo, onExtract, onClose }) =
             )}
         </Card>
     );
-};
+});
+
+SiloBagCard.displayName = 'SiloBagCard';
 
 export default SiloBagCard;

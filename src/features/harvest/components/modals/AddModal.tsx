@@ -10,7 +10,7 @@ import { useHarvesters } from '../../../../shared/hooks/harvester/useHarvesters'
 import { useHarvestManagers } from '../../../../shared/hooks/harvest-manager/useHarvestManagers';
 import { startHarvestSession } from '../../services/harvestSession';
 import useAuth from '../../../../shared/context/auth/AuthContext';
-import { useEffect } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { useActiveCampaign } from '../../../../shared/hooks/campaign/useActiveCampaign';
 import toast from 'react-hot-toast';
 import Select from '../../../../shared/components/form/Select';
@@ -58,18 +58,68 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
     const { harvesters } = useHarvesters();
     const { harvestManagers } = useHarvestManagers();
 
-    // Buscamos el objeto completo del lote seleccionado
-    const selectedPlot = plots?.find(p => p.id === selectedPlotId);
+    const selectedPlot = useMemo(() => 
+        plots?.find(p => p.id === selectedPlotId), 
+        [plots, selectedPlotId]
+    );
 
-    useEffect(() => {
-        if (selectedFieldId) {
-            setValue('plotId', '', { shouldValidate: false });
-            setValue('hectares', undefined, { shouldValidate: false });
-        }
-    }, [selectedFieldId, setValue]);
+    // Memoizar para evitar recreaciones constantes
+    const fieldOptions = useMemo(() => 
+        campaignFields?.map(cf => ({ id: cf.field.id, name: cf.field.name })) || [], 
+        [campaignFields]
+    );
+    
+    const plotOptions = useMemo(() => 
+        plots?.map(plot => ({ id: plot.id, name: plot.name })) || [], 
+        [plots]
+    );
+    
+    const harvesterOptions = useMemo(() => 
+        harvesters?.map(harvester => ({ id: harvester.id, name: harvester.name })) || [], 
+        [harvesters]
+    );
+    
+    const managerOptions = useMemo(() => 
+        harvestManagers?.map(manager => ({ id: manager.id, name: manager.name })) || [], 
+        [harvestManagers]
+    );
 
+    
 
-    useEffect(() => {
+    // Optimizar el filtrado de crops con dependencias más específicas
+    const filteredCrops = useMemo(() => {
+        if (!crops || !campaign?.id) return [];
+        if (!selectedPlot) return crops;
+        
+        const plotCrops = selectedPlot.crops || [];
+        const existingCropIds = new Set(
+            selectedPlot.harvest_sessions
+                ?.filter(hs => hs.campaign_id === campaign.id)
+                ?.map(hs => hs.crop_id) || []
+        );
+
+        return crops.filter(crop => {
+            // Si el plot tiene crops definidos, filtrar por esos
+            if (plotCrops.length > 0 && !plotCrops.includes(crop.id)) {
+                return false;
+            }
+            // Excluir crops que ya tienen sesiones activas
+            return !existingCropIds.has(crop.id);
+        });
+    }, [crops, selectedPlot, campaign?.id]);
+
+    const cropOptions = useMemo(() => 
+        filteredCrops.map(crop => ({ id: crop.id, name: crop.name })), 
+        [filteredCrops]
+    );
+
+    
+    const handleFieldChange = useCallback(() => {
+        setValue('plotId', '', { shouldValidate: false });
+        setValue('hectares', undefined, { shouldValidate: false });
+    }, [setValue]);
+
+    const handlePlotChange = useCallback(() => {
         if (selectedPlot) {
             setValue('hectares', selectedPlot.hectares || 0, { shouldValidate: true });
         } else {
@@ -77,15 +127,18 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
         }
     }, [selectedPlot, setValue]);
 
-    // Opciones para los selects
-    const fieldOptions = campaignFields?.map(cf => ({ id: cf.field.id, name: cf.field.name })) || [];
-    const plotOptions = plots?.map(plot => ({ id: plot.id, name: plot.name })) || [];
-    const cropOptions = crops?.map(crop => ({ id: crop.id, name: crop.name })) || [];
-    const harvesterOptions = harvesters?.map(harvester => ({ id: harvester.id, name: harvester.name })) || [];
-    const managerOptions = harvestManagers?.map(manager => ({ id: manager.id, name: manager.name })) || [];
+    useEffect(() => {
+        if (selectedFieldId) {
+            handleFieldChange();
+        }
+    }, [selectedFieldId, handleFieldChange]);
 
-    const onSubmit = async (data: HarvestFormData) => {
-        startHarvestSession({
+    useEffect(() => {
+        handlePlotChange();
+    }, [handlePlotChange]);
+
+    const onSubmit = useCallback(async (data: HarvestFormData) => {
+        await startHarvestSession({
             formData: data,
             currentUser,
             activeCampaign: campaign,
@@ -99,12 +152,20 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
         toast.success('Lote iniciado con éxito.');
         reset();
         onClose();
-    };
+    }, [currentUser, campaign, plots, campaignFields, crops, harvestManagers, harvesters, reset, onClose]);
 
-    const handleClose = () => {
+    const handleClose = useCallback(() => {
         reset();
         onClose();
-    };
+    }, [reset, onClose]);
+
+    const handleRemoveHarvester = useCallback((index: number) => {
+        remove(index);
+    }, [remove]);
+
+    const handleAddHarvester = useCallback(() => {
+        append({ harvesterId: '', maps: false });
+    }, [append]);
 
     // Variable para saber si los lotes están cargando
     const plotsAreLoading = selectedFieldId && plots === undefined;
@@ -244,7 +305,7 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
                             <Button
                                 type="button"
                                 variant="ghost"
-                                onClick={() => remove(index)}
+                                onClick={() => handleRemoveHarvester(index)}
                                 aria-label="Quitar cosechero"
                             >
                                 <Trash2 size={18} className="text-red-500" />
@@ -257,7 +318,7 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
                             type="button"
                             variant="outline"
                             icon={PlusCircle}
-                            onClick={() => append({ harvesterId: '', maps: false })}
+                            onClick={handleAddHarvester}
                         >
                             Agregar Cosechero
                         </Button>

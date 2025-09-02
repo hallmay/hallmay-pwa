@@ -1,12 +1,12 @@
 import { where } from "firebase/firestore";
 import { HarvestManager } from "../../types";
-import { useFirebaseCollection } from "../useFirebaseCollection";
+import { useFirebaseQuery } from "../useFirebaseQuery";
 
 export const useHarvestManagers = () => {
-        const { data: harvestManagers, loading, error } = useFirebaseCollection<HarvestManager>({
+        const { data: harvestManagers, loading, error, refetch } = useFirebaseQuery<HarvestManager>({
                 collectionName: 'users',
-                constraints: [where('role', '==', 'manager')],
+                constraints: [where('role', '==', 'manager')]
               });
 
-    return { harvestManagers, loading, error };
+    return { harvestManagers, loading, error, refetch };
 };

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useDeferredValue, useMemo } from "react";
 import { useNavigate } from "react-router";
 import Button from "../../shared/components/commons/Button";
 import PageHeader from "../../shared/components/layout/PageHeader";
@@ -16,6 +16,7 @@ const HarvestListView = () => {
     const [filters, setFilters] = useState<SessionsFiltersProps>({
         crop: 'all', field: 'all'
     });
+    const deferredFilters = useDeferredValue(filters);
     const [activeTab, setActiveTab] = useState('all');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const navigate = useNavigate();
@@ -30,15 +31,15 @@ const HarvestListView = () => {
         });
     }, []);
 
-    const getFilteredSessions = useCallback(() => {
+    const getFilteredSessions = useMemo(() => {
         let filteredData = sessions;
 
-        if (filters.field !== 'all') {
-            filteredData = filteredData?.filter(session => session.field.id === filters.field);
+        if (deferredFilters.field !== 'all') {
+            filteredData = filteredData?.filter(session => session.field.id === deferredFilters.field);
         }
 
-        if (filters.crop !== 'all') {
-            filteredData = filteredData?.filter(session => session.crop.id === filters.crop);
+        if (deferredFilters.crop !== 'all') {
+            filteredData = filteredData?.filter(session => session.crop.id === deferredFilters.crop);
         }
 
         if (activeTab !== 'all') {
@@ -52,9 +53,9 @@ const HarvestListView = () => {
         }
 
         return filteredData || [];
-    }, [sessions, filters, activeTab]);
+    }, [sessions, deferredFilters, activeTab]);
 
-    const finalFilteredSessions = getFilteredSessions();
+    const finalFilteredSessions = getFilteredSessions;
 
     const handleViewLot = (harvestSession: { id: string }) => {
         // Navegar a detalles de la sesión

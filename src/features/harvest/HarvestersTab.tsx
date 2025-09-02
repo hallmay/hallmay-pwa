@@ -14,40 +14,38 @@ const HarvestersTab: FC = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     const handleEditSubmit = async (data: { harvesters: Array<{ id: string; name: string }> }) => {
-        try {
-            await upsertHarvesters({
-                harvestSessionId: harvestSession.id,
-                harvestersFormData: data.harvesters
-            });
-            toast.success("Cosecheros actualizados con éxito.");
-            setIsEditModalOpen(false);
-        } catch (error) {
+        upsertHarvesters({
+            harvestSessionId: harvestSession.id,
+            harvestersFormData: data.harvesters
+        }).catch(error => {
             toast.error("Error al actualizar los cosecheros.");
-            console.error("Error al editar cosecheros:", error);
-        }
-    };
+            console.error("Error al actualizar los cosecheros:", error);
+        })
+        toast.success("Cosecheros actualizados con éxito.");
+        setIsEditModalOpen(false);
+};
 
-    const totalHarvestedHectares = harvestSession.harvested_hectares || 0;
+const totalHarvestedHectares = harvestSession.harvested_hectares || 0;
 
-    return (
-        <>
-            {isEditModalOpen && (
-                <ManageHarvestersModal
-                    isOpen={isEditModalOpen}
-                    onClose={() => setIsEditModalOpen(false)}
-                    onSubmit={handleEditSubmit}
-                    harvestSession={harvestSession}
-                />
-            )}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-gray-800">Cosecheros Asignados</h3>
-                    <Button variant="ghost" icon={Edit} aria-label="Editar Cosecheros" onClick={() => setIsEditModalOpen(true)} />
-                </div>
-                <ScrollableContainer maxHeight="70vh" showScrollbarOnDesktop={false}>
-                    <div className="space-y-4">
-                        {harvestSession.harvesters && harvestSession.harvesters.length > 0 ? (
-                            harvestSession.harvesters.map((h, i: number) => {
+return (
+    <>
+        {isEditModalOpen && (
+            <ManageHarvestersModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                onSubmit={handleEditSubmit}
+                harvestSession={harvestSession}
+            />
+        )}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-800">Cosecheros Asignados</h3>
+                <Button variant="ghost" icon={Edit} aria-label="Editar Cosecheros" onClick={() => setIsEditModalOpen(true)} />
+            </div>
+            <ScrollableContainer maxHeight="70vh" showScrollbarOnDesktop={false}>
+                <div className="space-y-4">
+                    {harvestSession.harvesters && harvestSession.harvesters.length > 0 ? (
+                        harvestSession.harvesters.map((h, i: number) => {
                             const contribution = totalHarvestedHectares > 0
                                 ? ((h.harvested_hectares || 0) / totalHarvestedHectares) * 100
                                 : 0;
@@ -98,11 +96,11 @@ const HarvestersTab: FC = () => {
                             <p>No hay cosecheros asignados a este lote.</p>
                         </div>
                     )}
-                    </div>
-                </ScrollableContainer>
-            </div>
-        </>
-    );
+                </div>
+            </ScrollableContainer>
+        </div>
+    </>
+);
 };
 
 export default HarvestersTab;

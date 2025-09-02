@@ -1,5 +1,5 @@
 // src/components/harvest-session/ui/PlotSection.tsx
-import type { FC } from "react";
+import { type FC, memo } from "react";
 import Card from "../../../shared/components/commons/Card";
 import type { HarvestSession } from "../../../shared/types";
 import StatusBadge from "../../../shared/components/commons/StatusBadge";
@@ -11,7 +11,7 @@ interface SessionSectionProps {
     loading?: boolean;
 }
 
-const SessionCard: FC<{ harvestSession: HarvestSession; onClick: (harvestSession: HarvestSession) => void }> = ({
+const SessionCard = memo<{ harvestSession: HarvestSession; onClick: (harvestSession: HarvestSession) => void }>(({
     harvestSession,
     onClick
 }) => {
@@ -60,7 +60,9 @@ const SessionCard: FC<{ harvestSession: HarvestSession; onClick: (harvestSession
             </div>
         </Card>
     );
-};
+});
+
+SessionCard.displayName = 'SessionCard';
 
 const SessionSection: FC<SessionSectionProps> = ({ harvestSessions, onViewLot, loading }) => {
     if (loading) {

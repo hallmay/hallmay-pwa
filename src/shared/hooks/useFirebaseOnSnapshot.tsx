@@ -20,7 +20,7 @@ interface UseFirebaseCollectionResult<T> {
   error: string | null;
 }
 
-export function useFirebaseCollection<T = any>({
+export function useFirebaseOnSnapshot<T = any>({
   collectionName,
   constraints = [],
   securityOptions,
@@ -90,7 +90,7 @@ export function useFirebaseCollection<T = any>({
       }
     );
 
-    return () => unsubscribe();
+    return () => {unsubscribe()};
   }, [finalQuery, authLoading, currentUser, enabled, collectionName, dependencyKey]);
 
   return { data, loading, error };
