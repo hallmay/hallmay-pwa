@@ -2,7 +2,7 @@ import type { FC } from "react";
 import { useForm, Controller } from "react-hook-form";
 import toast from "react-hot-toast";
 import useAuth from "../../../../shared/context/auth/AuthContext";
-import type { CampaignField, Crop, Logistics } from "../../../../shared/types";
+import type { Campaign, CampaignField, Crop, Logistics } from "../../../../shared/types";
 import Button from "../../../../shared/components/commons/Button";
 import Modal from "../../../../shared/components/commons/Modal";
 import { Timestamp } from "firebase/firestore";
@@ -17,8 +17,9 @@ const AddTruckModal: FC<{
     onClose: () => void;
     fields: Partial<CampaignField>[];
     crops: Crop[];
+    campaign: Campaign;
     suggestedOrderNumber: string;
-}> = ({ isOpen, onClose, fields, crops, suggestedOrderNumber }) => {
+}> = ({ isOpen, onClose, fields, crops, suggestedOrderNumber,campaign }) => {
     const { control, register, handleSubmit, formState: { errors }, reset } = useForm({
         defaultValues: {
             order: suggestedOrderNumber,
@@ -50,6 +51,7 @@ const AddTruckModal: FC<{
             order: data.order,
             date: Timestamp.fromDate(selectedDate),
             created_at: Timestamp.now(),
+            campaign: {id: campaign.id, name: campaign.name},
             field: { id: field.id, name: field.name },
             crop: { id: crop.id, name: crop.name },
             driver: data.driver,

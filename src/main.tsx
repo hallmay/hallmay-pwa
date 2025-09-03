@@ -4,16 +4,18 @@ import './shared/styles/mobile-scroll.css'
 import App from './App.tsx'
 import { BrowserRouter } from "react-router";
 import { AuthProvider } from './shared/context/auth/AuthContext.tsx';
-import { SyncProvider } from './shared/context/sync/SyncProvider.tsx';
+// import { SyncProvider } from './shared/context/sync/SyncProvider.tsx';
 import { Toaster } from 'react-hot-toast';
 import UpdateManager from './shared/components/commons/UpdateManager.tsx';
 import PWAInstallBanner from './shared/components/commons/PWAInstallBanner.tsx';
+import { DataProvider } from './shared/context/data/DataProvider.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <AuthProvider>
     <UpdateManager />
     <PWAInstallBanner />
-    <SyncProvider>
+    {/* <SyncProvider> */}
+    <DataProvider>
       <BrowserRouter>
         <App />
       </BrowserRouter>
@@ -39,6 +41,7 @@ createRoot(document.getElementById('root')!).render(
           }
         }}
       />
-    </SyncProvider>
+    {/* </SyncProvider> */}
+    </DataProvider>
   </AuthProvider>
 )

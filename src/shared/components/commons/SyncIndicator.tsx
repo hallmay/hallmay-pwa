@@ -1,5 +1,5 @@
 import { Wifi, WifiOff, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
-import { useSync } from "../../context/sync/SyncProvider";
+import { useData } from "../../context/data/DataProvider";
 import useAuth from "../../context/auth/AuthContext";
 import { type FC, useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
@@ -7,7 +7,7 @@ import { es } from "date-fns/locale";
 
 const SyncIndicator: FC = () => {
     const { currentUser } = useAuth();
-    const { isSyncing, lastSync, syncError, triggerSync } = useSync();
+    const { syncStatus, lastPrime } = useData();
     const [isOnline, setIsOnline] = useState(navigator.onLine);
 
     useEffect(() => {
@@ -25,31 +25,30 @@ const SyncIndicator: FC = () => {
         return null;
     }
 
-    // Objeto de configuración para cada estado
     const getStatusConfig = () => {
         if (!isOnline) return {
             Icon: WifiOff,
             text: "Sin Conexión",
             colorClasses: "bg-gray-100 text-gray-500",
-            tooltip: "La app funciona con datos locales.",
+            tooltip: "La app funciona con los últimos datos guardados.",
             disabled: true
         };
-        if (syncError) return {
+        if (syncStatus === 'error') return {
             Icon: AlertCircle,
             text: "Error",
             colorClasses: "bg-red-100 text-red-600",
             tooltip: "Error en la última sincronización. Haz clic para reintentar.",
             disabled: false
         };
-        if (isSyncing) return {
+        if (syncStatus === 'syncing') return {
             Icon: RefreshCw,
             text: "Sincronizando",
-            colorClasses: "bg-blue-100 text-blue-600 animate-pulse",
+            colorClasses: "bg-blue-100 text-blue-600",
             tooltip: "Sincronizando datos...",
             disabled: true
         };
-        if (lastSync) {
-            const timeAgo = formatDistanceToNow(lastSync, { addSuffix: true, locale: es });
+        if (lastPrime) {
+            const timeAgo = formatDistanceToNow(lastPrime, { addSuffix: true, locale: es });
             return {
                 Icon: CheckCircle,
                 text: "Sincronizado",
@@ -68,14 +67,12 @@ const SyncIndicator: FC = () => {
     };
 
     const { Icon, text, colorClasses, tooltip, disabled } = getStatusConfig();
-    const isSpinning = isSyncing;
+    const isSpinning = syncStatus === 'syncing';
 
     return (
         <button
-            onClick={triggerSync}
-            disabled={disabled || isSyncing}
+            disabled={disabled || syncStatus === 'syncing'}
             title={tooltip}
-            // 🔥 Contenedor principal con estilos base
             className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-300 disabled:opacity-80 disabled:cursor-not-allowed ${colorClasses}`}
         >
             <Icon size={16} className={isSpinning ? 'animate-spin' : ''} />

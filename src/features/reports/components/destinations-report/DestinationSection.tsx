@@ -62,11 +62,6 @@ export const DestinationsSection: FC = () => {
 
     return (
         <div className="animate-fade-in">
-            <div className="flex items-center space-x-3 mb-4">
-                <Truck className="w-6 h-6 text-primary" />
-                <h3 className="text-xl font-bold text-text-primary">Entregas por Destino</h3>
-            </div>
-
             {analytics.destinationSummary.length > 0 ? (
                 // Se agrega un space-y para la separación entre las nuevas tarjetas
                 <div className="space-y-4">

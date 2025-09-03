@@ -9,6 +9,7 @@ interface SessionSectionProps {
     harvestSessions: HarvestSession[];
     onViewLot: (lot: HarvestSession) => void;
     loading?: boolean;
+    fieldSelected?: boolean;
 }
 
 const SessionCard = memo<{ harvestSession: HarvestSession; onClick: (harvestSession: HarvestSession) => void }>(({
@@ -64,7 +65,7 @@ const SessionCard = memo<{ harvestSession: HarvestSession; onClick: (harvestSess
 
 SessionCard.displayName = 'SessionCard';
 
-const SessionSection: FC<SessionSectionProps> = ({ harvestSessions, onViewLot, loading }) => {
+const SessionSection: FC<SessionSectionProps> = ({ harvestSessions, onViewLot, loading,fieldSelected }) => {
     if (loading) {
         return (
             <div className="text-center py-8">
@@ -89,7 +90,7 @@ const SessionSection: FC<SessionSectionProps> = ({ harvestSessions, onViewLot, l
                     </div>
                 ) : (
                     <div className="text-center py-8">
-                        <p className="text-text-secondary">No se encontraron lotes en cosecha.</p>
+                        {fieldSelected ? <p className="text-text-secondary">No se encontraron lotes en cosecha.</p> : <p className="text-text-secondary">Por favor, seleccione un campo.</p>}
                     </div>
                 )}
             </ScrollableContainer>

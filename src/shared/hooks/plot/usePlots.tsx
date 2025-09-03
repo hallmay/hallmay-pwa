@@ -1,22 +1,7 @@
-import { useMemo } from 'react';
-import { where } from 'firebase/firestore';
-import type { Plot } from '../../types';
-import { useFirebaseOnSnapshot } from '../useFirebaseOnSnapshot';
+import { useData } from '../../context/data/DataProvider';
 
-export const usePlots = (fieldId: string) => {
-  const constraints = useMemo(() => 
-    fieldId ? [where('field.id', '==', fieldId)] : [], 
-    [fieldId]
-  );
+export const usePlots = () => {
+  const { plots, loading} = useData();
 
-  const { data: plots, loading, error } = useFirebaseOnSnapshot<Plot>({
-    collectionName: 'plots',
-    constraints,
-    securityOptions: {
-      withFieldAccess: 'field.id'
-    },
-    enabled: !!fieldId
-  });
-
-  return { plots, loading, error };
+  return {plots,loading}
 };

@@ -1,5 +1,5 @@
 import { toast } from "react-hot-toast";
-import type { CampaignField, Crop, Silobag, MovementType, User } from "../../../shared/types";
+import type { CampaignField, Crop, Silobag, MovementType, User, Campaign } from "../../../shared/types";
 import { FirebaseBatchOperation } from "../../../shared/services/FirebaseBatchOperation";
 import { Timestamp } from "firebase/firestore";
 
@@ -15,6 +15,7 @@ interface CreateSiloBagParams {
     currentUser: User;
     fields: Partial<CampaignField>[];
     crops: Partial<Crop>[];
+    campaign: Campaign;
 }
 
 interface ExtractKgsParams {
@@ -95,9 +96,9 @@ class SiloBagService extends FirebaseBatchOperation {
      * Crea un nuevo silobag - versión simplificada
      */
     async createSilobag(params: CreateSiloBagParams): Promise<void> {
-        this.validateRequiredFields(params, ['formData', 'currentUser', 'fields', 'crops']);
-        
-        const { formData, currentUser, fields, crops } = params;
+        this.validateRequiredFields(params, ['formData', 'currentUser', 'fields', 'crops','campaign']);
+
+        const { formData, currentUser, fields, crops,campaign } = params;
 
         // 1. Validar referencias
         const { field, crop } = this.findFieldAndCrop(formData.fieldId, formData.cropId, fields, crops);
@@ -115,6 +116,7 @@ class SiloBagService extends FirebaseBatchOperation {
             organization_id: currentUser.organizationId,
             initial_kg: initialKg,
             current_kg: initialKg,
+            campaign: {id: campaign.id, name: campaign.name},
             field: { id: field.id, name: field.name },
             crop: { id: crop.id, name: crop.name },
             details: formData.details,

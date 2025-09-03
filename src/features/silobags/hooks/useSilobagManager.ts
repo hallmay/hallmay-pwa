@@ -1,17 +1,17 @@
 import { useState, useCallback } from 'react';
-import type { Silobag, CampaignField, Crop } from '../../../shared/types';
+import type { Silobag, CampaignField,Campaign, Crop } from '../../../shared/types';
 import { createSilobag, extractKgsSilobag, closeSilobag } from '../services/siloBags';
 import useAuth from '../../../shared/context/auth/AuthContext';
 import toast from 'react-hot-toast';
 
-export const useSiloBagManager = (fields: Partial<CampaignField>[], crops: Partial<Crop>[]) => {
+export const useSiloBagManager = (campaign: Campaign,fields: Partial<CampaignField>[], crops: Partial<Crop>[]) => {
     const [modalState, setModalState] = useState<{ type: 'create' | 'extract' | 'close' | null; data?: Silobag }>({ type: null });
     const { currentUser } = useAuth();
 
     
     const handleCreate = useCallback(async (formData: any) => {
         if (!currentUser) return;
-        createSilobag({ formData, currentUser, fields, crops }).catch(error => {
+        createSilobag({ formData, currentUser, fields, crops,campaign }).catch(error => {
             console.error("Error al crear silobolsa:", error);
         })
         closeModal();

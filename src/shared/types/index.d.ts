@@ -98,6 +98,10 @@ export interface Silobag {
     initial_kg: number;
     lost_kg: number;
     difference_kg: number;
+    campaign: {
+        id: string;
+        name: string;
+    };
     crop: {
         id: string;
         name: string;
@@ -152,6 +156,10 @@ export interface Logistics {
     driver: string;
     company: string;
     details: string;
+    campaign: {
+        id: string;
+        name: string;
+    }
     crop: {
         id: string;
         name: string;

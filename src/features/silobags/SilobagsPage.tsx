@@ -20,18 +20,18 @@ const ExtractKgsModal = lazy(() => import("./components/modals/ExtractKgsModal")
 const CloseSiloBagModal = lazy(() => import("./components/modals/CloseSilobagModal"));
 
 const SiloBags = () => {
-    const [selectedField, setSelectedField] = useState('all');
+    const [selectedField, setSelectedField] = useState('');
     const [selectedCrop, setSelectedCrop] = useState('all');
     const [selectedStatus, setSelectedStatus] = useState('all');
 
     // Hooks de datos
     const { campaign } = useActiveCampaign();
-    const { campaignFields } = useCampaignFields(campaign?.id);
+    const { campaignFields } = useCampaignFields();
     const { crops } = useCrops();
-    const { siloBags, loading, error } = useSiloBags({ fieldId: selectedField, cropId: selectedCrop, status: selectedStatus });
+    const { siloBags, loading, error } = useSiloBags(campaign?.id,selectedField, { fieldId: selectedField, cropId: selectedCrop, status: selectedStatus });
 
     // 2. Instanciamos nuestro nuevo manager, pasándole los datos que necesita
-    const manager = useSiloBagManager(campaignFields, crops);
+    const manager = useSiloBagManager(campaign,campaignFields, crops);
 
 
     if (loading) {
@@ -89,7 +89,7 @@ const SiloBags = () => {
                                 ))
                             ) : (
                                 <div className="col-span-full text-center text-text-secondary py-8">
-                                    <p>No se encontraron silobolsas con los filtros seleccionados.</p>
+                                    {selectedField !== '' ? <p>No se encontraron silobolsas con los filtros seleccionados.</p> : <p>Por favor, seleccione un campo.</p>}
                                 </div>
                             )}
                         </div>

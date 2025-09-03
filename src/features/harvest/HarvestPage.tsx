@@ -11,10 +11,11 @@ import SessionsFilters, { type SessionsFiltersProps } from "./components/Filters
 import { useActiveCampaign } from "../../shared/hooks/campaign/useActiveCampaign";
 import PageLoader from "../../shared/components/layout/PageLoader";
 import useAuth from "../../shared/context/auth/AuthContext";
+import { useCampaignFields } from "../../shared/hooks/field/useCampaignFields";
 
 const HarvestListView = () => {
     const [filters, setFilters] = useState<SessionsFiltersProps>({
-        crop: 'all', field: 'all'
+        crop: 'all', field: ''
     });
     const deferredFilters = useDeferredValue(filters);
     const [activeTab, setActiveTab] = useState('all');
@@ -22,7 +23,8 @@ const HarvestListView = () => {
     const navigate = useNavigate();
     const {currentUser} = useAuth();
     const { campaign, loading: loadingCampaign } = useActiveCampaign();
-    const { sessions, loading: loadingSessions, error } = useHarvestSessionsByCampaign(campaign?.id);
+    const {campaignFields, loading: loadingFields} = useCampaignFields(campaign?.id);
+    const { sessions, loading: loadingSessions, error } = useHarvestSessionsByCampaign(campaign?.id, filters.field);
 
     const handleFilterChange = useCallback((filterName: keyof SessionsFiltersProps, value: string) => {
         setFilters(currentFilters => {
@@ -33,10 +35,6 @@ const HarvestListView = () => {
 
     const getFilteredSessions = useMemo(() => {
         let filteredData = sessions;
-
-        if (deferredFilters.field !== 'all') {
-            filteredData = filteredData?.filter(session => session.field.id === deferredFilters.field);
-        }
 
         if (deferredFilters.crop !== 'all') {
             filteredData = filteredData?.filter(session => session.crop.id === deferredFilters.crop);
@@ -70,7 +68,7 @@ const HarvestListView = () => {
         setIsModalOpen(false);
     };
 
-    if (loadingCampaign) {
+    if (loadingCampaign || loadingFields) {
         return <PageLoader title="Cosecha" breadcrumbs={[{ label: 'Cosecha' }]} message="Cargando campaña activa..." />;
     }
 
@@ -109,12 +107,14 @@ const HarvestListView = () => {
             <SessionsFilters
                 filters={filters}
                 onFilterChange={handleFilterChange}
+                campaignFields={campaignFields}
                 sessionsForCampaign={sessions}
             />
 
             <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
             <SessionSection
+                fieldSelected={!!filters.field}
                 harvestSessions={finalFilteredSessions || []}
                 onViewLot={handleViewLot}
                 loading={loadingSessions}

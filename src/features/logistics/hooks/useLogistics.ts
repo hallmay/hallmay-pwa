@@ -4,10 +4,11 @@ import { useMemo } from "react";
 import { useFirebaseOnSnapshot } from "../../../shared/hooks/useFirebaseOnSnapshot";
 import { HarvestSession } from "../../../shared/types";
 
-export const useLogistics = (dateRange: { from: Date | null, to: Date | null }, selectedField: string) => {
+export const useLogistics = (dateRange: { from: Date | null, to: Date | null }, selectedField: string, campaignId: string) => {
 
     const constraints = useMemo(() => {
-        const baseConstraints: QueryConstraint[] = [orderBy('date', 'desc')];
+        if (!campaignId) return [];
+        const baseConstraints: QueryConstraint[] = [where('campaign.id', '==', campaignId), orderBy('date', 'desc')];
         if (dateRange.from) {
             baseConstraints.push(where('date', '>=', Timestamp.fromDate(startOfDay(dateRange.from))));
         }
@@ -18,7 +19,7 @@ export const useLogistics = (dateRange: { from: Date | null, to: Date | null }, 
             baseConstraints.push(where('field.id', '==', selectedField));
         }
         return baseConstraints;
-    }, [dateRange, selectedField]);
+    }, [dateRange.from, dateRange.to, selectedField, campaignId]);
 
     const { data: logistics, loading, error } = useFirebaseOnSnapshot<HarvestSession>({
         collectionName: 'logistics',
@@ -26,8 +27,8 @@ export const useLogistics = (dateRange: { from: Date | null, to: Date | null }, 
         securityOptions: {
             withFieldAccess: 'field.id'
         },
-        dependencies: [dateRange, selectedField],
-        enabled: !!dateRange.from || !!dateRange.to || !!selectedField
+        dependencies: [campaignId],
+        enabled: !!dateRange.from || !!dateRange.to || !!selectedField || !!campaignId
     });
 
 

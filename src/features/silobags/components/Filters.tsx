@@ -26,7 +26,6 @@ const Filters: FC<SiloBagsFiltersProps> = ({
     crops
 }) => {
     const fieldOptions = [
-        { id: 'all', name: 'Todos los Campos' },
         ...fields.map(cf => ({ id: cf.field.id, name: cf.field.name }))
     ];
 
@@ -40,18 +39,9 @@ const Filters: FC<SiloBagsFiltersProps> = ({
             <h2 className="text-lg font-bold text-text-primary mb-4">Filtros</h2>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 <Select
-                    label="Estado"
-                    items={[{ id: 'all', name: 'Todos los Estados' }, { id: 'active', name: 'Activo' }, { id: 'closed', name: 'Cerrado' }]}
-                    name="status"
-                    placeholder="Filtrar por Estado"
-                    value={selectedStatus}
-                    onChange={(newValue) => onStatusChange(newValue as string)}
-                />
-                <Select
                     label="Campo"
                     items={fieldOptions}
                     name="campo"
-                    placeholder="Filtrar por Campo"
                     value={selectedField}
                     onChange={(newValue) => onFieldChange(newValue as string)}
                 />
@@ -62,6 +52,16 @@ const Filters: FC<SiloBagsFiltersProps> = ({
                     placeholder="Filtrar por Cultivo"
                     value={selectedCrop}
                     onChange={(newValue) => onCropChange(newValue as string)}
+                    disabled={selectedField === ''}
+                />
+                <Select
+                    label="Estado"
+                    items={[{ id: 'all', name: 'Todos los Estados' }, { id: 'active', name: 'Activo' }, { id: 'closed', name: 'Cerrado' }]}
+                    name="status"
+                    placeholder="Filtrar por Estado"
+                    value={selectedStatus}
+                    onChange={(newValue) => onStatusChange(newValue as string)}
+                    disabled={selectedField === ''}
                 />
             </div>
         </Card>

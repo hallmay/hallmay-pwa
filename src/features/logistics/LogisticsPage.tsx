@@ -37,7 +37,7 @@ const Logistics = () => {
     const { campaign } = useActiveCampaign();
     const { campaignFields, loading: loadingFields } = useCampaignFields(campaign?.id);
     const { crops } = useCrops();
-    const { logistics, loading: loadingLogistics } = useLogistics(selectedDateRange, selectedField);
+    const { logistics, loading: loadingLogistics } = useLogistics(selectedDateRange, selectedField,campaign?.id);
 
     const statusOptions = [
         { value: 'in-route-to-field', label: 'En Camino a Campo', color: 'bg-blue-100 text-blue-800', shortLabel: 'En Camino' },
@@ -118,6 +118,7 @@ const Logistics = () => {
                 onClose={() => setModal(null)}
                 fields={campaignFields}
                 crops={crops}
+                campaign={campaign}
                 suggestedOrderNumber={suggestedOrderNumber} />
 
             <UpdateStatusModal

@@ -9,30 +9,26 @@ interface SiloBagFilters {
     status?: string | null;
 }
 
-export const useSiloBags = (filters: SiloBagFilters = {}) => {
+export const useSiloBags = (campaignId: string | null,fieldId: string, filters: SiloBagFilters = {}) => {
     const memoizedFilters = useMemo(() => ({
-        fieldId: filters.fieldId || 'all',
         cropId: filters.cropId || 'all',
         status: filters.status || 'all'
     }), [filters.fieldId, filters.cropId, filters.status]);
 
     const constraints = useMemo(() => {
-        const queryConstraints = [];
-        
-        if (memoizedFilters.fieldId && memoizedFilters.fieldId !== 'all') {
-            queryConstraints.push(where('field.id', '==', memoizedFilters.fieldId));
-        }
+        if (!campaignId || !fieldId) return [];
+        const queryConstraints = [
+            where('campaign.id', '==', campaignId),orderBy('date', 'desc'),
+            where('field.id', '==', fieldId)];
         if (memoizedFilters.cropId && memoizedFilters.cropId !== 'all') {
             queryConstraints.push(where('crop.id', '==', memoizedFilters.cropId));
         }
         if (memoizedFilters.status && memoizedFilters.status !== 'all') {
             queryConstraints.push(where('status', '==', memoizedFilters.status));
         }
-
-        queryConstraints.push(orderBy('date', 'desc'));
         
         return queryConstraints;
-    }, [memoizedFilters.fieldId, memoizedFilters.cropId, memoizedFilters.status]);
+    }, [memoizedFilters.cropId, memoizedFilters.status,fieldId,campaignId]);
 
     const { data: siloBags, loading, error } = useFirebaseOnSnapshot<Silobag>({
         collectionName: 'silo_bags',
@@ -40,7 +36,8 @@ export const useSiloBags = (filters: SiloBagFilters = {}) => {
         securityOptions: {
             withFieldAccess: 'field.id'
         },
-        dependencies: [memoizedFilters.fieldId, memoizedFilters.cropId, memoizedFilters.status],
+        dependencies: [fieldId, memoizedFilters.cropId, memoizedFilters.status,campaignId],
+        enabled: !!campaignId || !!fieldId
     });
 
     return { siloBags, loading, error };

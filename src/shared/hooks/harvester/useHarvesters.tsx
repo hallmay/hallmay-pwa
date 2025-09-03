@@ -1,10 +1,6 @@
-import type { Harvester } from '../../types';
-import { useFirebaseOnSnapshot } from '../useFirebaseOnSnapshot';
+import { useData } from '../../context/data/DataProvider';
 
 export const useHarvesters = () => {
-  const { data: harvesters, loading, error } = useFirebaseOnSnapshot<Harvester>({
-    collectionName: 'harvesters'
-  });
-
-  return { harvesters, loading, error };
+  const { harvesters, loading } = useData();
+  return { harvesters, loading, error: null };
 };

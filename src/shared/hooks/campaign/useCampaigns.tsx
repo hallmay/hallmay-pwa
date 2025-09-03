@@ -1,17 +1,13 @@
+import { useData } from '../../context/data/DataProvider';
 import { useMemo } from 'react';
-import { orderBy } from 'firebase/firestore';
-import type { Campaign } from '../../types';
-import { useFirebaseOnSnapshot } from '../useFirebaseOnSnapshot';
 
 export const useCampaigns = () => {
-  const constraints = useMemo(() => [
-    orderBy('start_date', 'desc')
-  ], []);
+  const { campaigns, loading } = useData();
 
-  const { data: campaigns, loading, error } = useFirebaseOnSnapshot<Campaign>({
-    collectionName: 'campaigns',
-    constraints,
-  });
+  const sortedCampaigns = useMemo(() => 
+    [...campaigns].sort((a, b) => b.start_date.toMillis() - a.start_date.toMillis()), 
+    [campaigns]
+  );
 
-  return { campaigns, loading, error };
+  return { campaigns: sortedCampaigns, loading, error: null };
 };
