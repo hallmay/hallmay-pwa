@@ -14,9 +14,6 @@ export const useHarvestSessionRegisters = (harvestSessionId: string) => {
     const { data: registers, loading, error } = useFirebaseOnSnapshot<HarvestSessionRegister>({
         collectionName: `harvest_sessions/${harvestSessionId}/registers`,
         constraints,
-        securityOptions: {
-            withFieldAccess: 'field.id'
-        },
         dependencies: [harvestSessionId],
         enabled: !!harvestSessionId
     });

@@ -53,7 +53,7 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
 
     const { currentUser } = useAuth();
     const { campaignFields } = useCampaignFields(campaign?.id);
-    const { plots } = usePlots(selectedFieldId);
+    const { plots, loading: plotsLoading } = usePlots(selectedFieldId, { enabled: isOpen });
     const { crops } = useCrops();
     const { harvesters } = useHarvesters();
     const { harvestManagers } = useHarvestManagers();
@@ -168,7 +168,7 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
     }, [append]);
 
     // Variable para saber si los lotes están cargando
-    const plotsAreLoading = selectedFieldId && plots === undefined;
+    const plotsAreLoading = selectedFieldId && plots === undefined && plotsLoading;
 
     return (
         <Modal isOpen={isOpen} onClose={handleClose} title="Iniciar Cosecha de Lote">

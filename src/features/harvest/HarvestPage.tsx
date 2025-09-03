@@ -23,8 +23,12 @@ const HarvestListView = () => {
     const navigate = useNavigate();
     const {currentUser} = useAuth();
     const { campaign, loading: loadingCampaign } = useActiveCampaign();
-    const {campaignFields, loading: loadingFields} = useCampaignFields(campaign?.id);
-    const { sessions, loading: loadingSessions, error } = useHarvestSessionsByCampaign(campaign?.id, filters.field);
+    const {campaignFields, loading: loadingFields} = useCampaignFields();
+    const { sessions, loading: loadingSessions, error } = useHarvestSessionsByCampaign(
+    campaign?.id ?? '',
+    filters.field ?? '',
+        { includeFinished: activeTab === 'finished' || activeTab === 'all' }
+    );
 
     const handleFilterChange = useCallback((filterName: keyof SessionsFiltersProps, value: string) => {
         setFilters(currentFilters => {

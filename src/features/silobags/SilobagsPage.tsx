@@ -22,16 +22,16 @@ const CloseSiloBagModal = lazy(() => import("./components/modals/CloseSilobagMod
 const SiloBags = () => {
     const [selectedField, setSelectedField] = useState('');
     const [selectedCrop, setSelectedCrop] = useState('all');
-    const [selectedStatus, setSelectedStatus] = useState('all');
+    const [selectedStatus, setSelectedStatus] = useState('active');
 
     // Hooks de datos
     const { campaign } = useActiveCampaign();
     const { campaignFields } = useCampaignFields();
     const { crops } = useCrops();
-    const { siloBags, loading, error } = useSiloBags(campaign?.id,selectedField, { fieldId: selectedField, cropId: selectedCrop, status: selectedStatus });
+    const { siloBags, loading, error } = useSiloBags(campaign?.id ?? null, selectedField, { fieldId: selectedField, cropId: selectedCrop, status: selectedStatus });
 
     // 2. Instanciamos nuestro nuevo manager, pasándole los datos que necesita
-    const manager = useSiloBagManager(campaign,campaignFields, crops);
+    const manager = campaign ? useSiloBagManager(campaign, campaignFields, crops) : null;
 
 
     if (loading) {

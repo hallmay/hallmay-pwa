@@ -12,9 +12,6 @@ export const useSiloBagMovements = (siloBagId?: string) => {
     const { data: movements, loading, error } = useFirebaseOnSnapshot<SilobagMovement>({
         collectionName: `silo_bags/${siloBagId}/movements`,
         constraints,
-        securityOptions: {
-            withFieldAccess: 'field.id'
-        },
         dependencies: [siloBagId],
         enabled: !!siloBagId
     });

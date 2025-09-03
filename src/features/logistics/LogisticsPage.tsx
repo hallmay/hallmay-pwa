@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { format, subDays } from "date-fns";
+import { format } from "date-fns";
 import PageHeader from "../../shared/components/layout/PageHeader";
 import { useLogistics } from "./hooks/useLogistics";
 import { useCampaignFields } from "../../shared/hooks/field/useCampaignFields";
@@ -23,7 +23,7 @@ const Logistics = () => {
     const { control, watch } = useForm({
         defaultValues: {
             dateRange: {
-                from: subDays(new Date(), 7),
+                from: new Date(),
                 to: new Date()
             },
             field: 'all'
@@ -35,9 +35,13 @@ const Logistics = () => {
 
     // Hooks de datos
     const { campaign } = useActiveCampaign();
-    const { campaignFields, loading: loadingFields } = useCampaignFields(campaign?.id);
+    const { campaignFields, loading: loadingFields } = useCampaignFields();
     const { crops } = useCrops();
-    const { logistics, loading: loadingLogistics } = useLogistics(selectedDateRange, selectedField,campaign?.id);
+    const { logistics, loading: loadingLogistics } = useLogistics(
+        selectedDateRange,
+        selectedField,
+        campaign?.id ?? ''
+    );
 
     const statusOptions = [
         { value: 'in-route-to-field', label: 'En Camino a Campo', color: 'bg-blue-100 text-blue-800', shortLabel: 'En Camino' },
@@ -49,7 +53,7 @@ const Logistics = () => {
     const suggestedOrderNumber = useMemo(() => {
         const dateToUse = selectedDateRange.to || new Date();
         const datePrefix = format(dateToUse, 'ddMM');
-        const ordersForDay = logistics.filter(truck => {
+        const ordersForDay = logistics.filter((truck: LogisticsType) => {
             const truckDate = truck.date.toDate();
             return truckDate && format(truckDate, 'ddMM') === datePrefix;
         });
@@ -59,12 +63,16 @@ const Logistics = () => {
 
 
     const organizedTasks = useMemo(() => {
-        const organized = statusOptions.reduce((acc, status) => ({ ...acc, [status.value]: [] }), {});
-        logistics.forEach(truck => {
-            if (organized[truck.status]) organized[truck.status].push(truck);
+        const initial: Record<string, LogisticsType[]> = Object.fromEntries(
+            statusOptions.map(s => [s.value, [] as LogisticsType[]])
+        ) as Record<string, LogisticsType[]>;
+
+        (logistics as unknown as LogisticsType[]).forEach((truck) => {
+            (initial[truck.status] ||= []).push(truck);
         });
-        return organized;
-    }, [logistics]);
+
+        return initial;
+    }, [logistics, statusOptions]);
 
     const handleStatusChange = async (truckId: string, newStatus: string) => {
         updateLogisticsStatus(truckId, newStatus).catch(error => {
@@ -113,13 +121,16 @@ const Logistics = () => {
                 />
             </div>
 
-            <AddTruckModal
-                isOpen={modal === 'add'}
-                onClose={() => setModal(null)}
-                fields={campaignFields}
-                crops={crops}
-                campaign={campaign}
-                suggestedOrderNumber={suggestedOrderNumber} />
+            {campaign && (
+                <AddTruckModal
+                    isOpen={modal === 'add'}
+                    onClose={() => setModal(null)}
+                    fields={campaignFields}
+                    crops={crops}
+                    campaign={campaign}
+                    suggestedOrderNumber={suggestedOrderNumber}
+                />
+            )}
 
             <UpdateStatusModal
                 isOpen={modal === 'update'}

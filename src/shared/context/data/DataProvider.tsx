@@ -2,10 +2,12 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { collection, query, where, onSnapshot, getDocs, limit, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
 import useAuth from '../auth/AuthContext';
-import type { Campaign, CampaignField, Crop, Destination, Harvester, HarvestManager, Plot, User } from '../../types';
+import type { Campaign, CampaignField, Crop, Destination, Harvester, HarvestManager, User } from '../../types';
 import { createSecurityQuery } from '../../firebase/queryBuilder';
 import { chunkArray } from '../../firebase/utils';
 import { useDeviceType } from '../../hooks/useDeviceType';
+import { startOfDay, endOfDay } from 'date-fns';
+import { ACTIVE_LOGISTICS_STATUSES } from '../../utils/logistics';
 
 interface ColdData {
     activeCampaign: Campaign | null;
@@ -15,7 +17,6 @@ interface ColdData {
     destinations: Destination[];
     harvesters: Harvester[];
     managers: HarvestManager[];
-    plots: Plot[];
 }
 
 interface DataContextType extends ColdData {
@@ -50,7 +51,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         destinations: [],
         harvesters: [],
         managers: [],
-        plots: []
     });
 
     const primeCriticalData = useCallback(async (user: User, activeCampaign: Campaign, fieldIds: string[]) => {
@@ -61,35 +61,94 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         const lastSyncItem = localStorage.getItem('lastPrimeSync');
         const lastSync = lastSyncItem ? Timestamp.fromDate(new Date(lastSyncItem)) : null;
 
-        const securityQueryBuilder = createSecurityQuery(user).withFieldAccess('field.id');
-        let securityConstraints = securityQueryBuilder.build();
-        if (lastSync) {
-            securityConstraints.push(where('updated_at', '>', lastSync));
+        const baseConstraints = createSecurityQuery(user).build();
+        const securityConstraints = lastSync
+            ? [...baseConstraints, where('updated_at', '>', lastSync)]
+            : baseConstraints;
+
+        const isAdminLike = user.role === 'admin' || user.role === 'superadmin';
+        let effectiveFieldIds = Array.from(new Set(fieldIds.filter(Boolean)));
+        if (!isAdminLike) {
+            const accessible = Array.from(new Set((user.accessibleFieldIds ?? []).filter(Boolean)));
+            if (accessible.length === 0) {
+                // Sin campos accesibles, nada que primar
+                const now = new Date();
+                setLastPrime(now);
+                localStorage.setItem('lastPrimeSync', now.toISOString());
+                setSyncStatus('synced');
+                return true;
+            }
+            const allowed = new Set(accessible);
+            effectiveFieldIds = effectiveFieldIds.filter(id => allowed.has(id));
         }
 
-        const fieldChunks = chunkArray(fieldIds, 10);
+        if (effectiveFieldIds.length === 0) {
+            const now = new Date();
+            setLastPrime(now);
+            localStorage.setItem('lastPrimeSync', now.toISOString());
+            setSyncStatus('synced');
+            return true;
+        }
 
+        const fieldChunks = chunkArray(effectiveFieldIds, 10);
+
+        // 3) Ejecutar queries con UN solo where('field.id','in', chunk)
         const plotPromises = fieldChunks.map(chunk =>
-            getDocs(query(collection(db, 'plots'), ...securityConstraints, where('field.id', 'in', chunk)))
+            getDocs(query(
+                collection(db, 'plots'),
+                ...securityConstraints,
+                where('field.id', 'in', chunk)
+            ))
         );
 
         const siloBagPromises = fieldChunks.map(chunk =>
-            getDocs(query(collection(db, 'silo_bags'), ...securityConstraints, where('campaign.id', '==', activeCampaign.id), where('status', '==', 'active'), where('field.id', 'in', chunk)))
+            getDocs(query(
+                collection(db, 'silo_bags'),
+                ...securityConstraints,
+                where('campaign.id', '==', activeCampaign.id),
+                where('status', '==', 'active'),
+                where('field.id', 'in', chunk)
+            ))
         );
 
         const sessionPromises = fieldChunks.map(chunk =>
-            getDocs(query(collection(db, 'harvest_sessions'), ...securityConstraints, where('campaign.id', '==', activeCampaign.id), where('status', 'in', ['pending', 'in-progress']), where('field.id', 'in', chunk)))
+            getDocs(query(
+                collection(db, 'harvest_sessions'),
+                ...securityConstraints,
+                where('campaign.id', '==', activeCampaign.id),
+                where('status', 'in', ['pending', 'in-progress']),
+                where('field.id', 'in', chunk)
+            ))
+        );
+
+        // 4) Primar logística del día (solo estados activos) para cache offline
+        const today = new Date();
+        const todayStart = Timestamp.fromDate(startOfDay(today));
+        const todayEnd = Timestamp.fromDate(endOfDay(today));
+    const activeLogisticsStatuses = ACTIVE_LOGISTICS_STATUSES;
+        
+        const todaysActiveLogisticsPromises = activeLogisticsStatuses.flatMap(status =>
+            fieldChunks.map(chunk =>
+                getDocs(query(
+                    collection(db, 'logistics'),
+                    ...baseConstraints,
+                    where('campaign.id', '==', activeCampaign.id),
+                    where('status', '==', status),
+                    where('date', '>=', todayStart),
+                    where('date', '<=', todayEnd),
+                    where('field.id', 'in', chunk),
+                    orderBy('date', 'desc'),
+                    limit(100)
+                ))
+            )
         );
 
         try {
-            const [sessionsSnaps, siloBagsSnaps, plotSnaps] = await Promise.all([
+            const [sessionsSnaps, siloBagsSnaps, _plotSnaps] = await Promise.all([
                 Promise.all(sessionPromises),
                 Promise.all(siloBagPromises),
-                Promise.all(plotPromises) // Ejecutamos plots pero no necesitamos sus resultados directos aquí
+                Promise.all(plotPromises)
             ]);
-
-            const plots = { docs: plotSnaps.flatMap(snap => snap.docs) };
-            setColdData(prev => ({ ...prev, plots: plots.docs.map(doc => ({ id: doc.id, ...doc.data() } as Plot)) }));
 
             const sessions = { docs: sessionsSnaps.flatMap(snap => snap.docs) };
             const silobags = { docs: siloBagsSnaps.flatMap(snap => snap.docs) };
@@ -99,7 +158,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 ...silobags.docs.map(doc => getDocs(query(collection(db, `silo_bags/${doc.id}/movements`), ...securityConstraints, orderBy('date', 'desc'), limit(10))))
             ];
 
-            await Promise.all(subcollectionPromises);
+            await Promise.all([
+                Promise.all(subcollectionPromises),
+                Promise.all(todaysActiveLogisticsPromises)
+            ]);
             const now = new Date();
             setLastPrime(now);
             localStorage.setItem('lastPrimeSync', now.toISOString());
@@ -116,7 +178,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         if (!currentUser) {
             setLoading(false);
-            setColdData({ activeCampaign: null, campaigns: [], campaignFields: [], crops: [], destinations: [], harvesters: [], managers: [], plots: [] });
+            setColdData({ activeCampaign: null, campaigns: [], campaignFields: [], crops: [], destinations: [], harvesters: [], managers: []});
             return;
         }
 
