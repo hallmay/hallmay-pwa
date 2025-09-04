@@ -4,28 +4,12 @@ import { useMemo } from "react";
 import { useFirebaseQuery } from "../../../shared/hooks/useFirebaseQuery";
 import { useFirebaseOnSnapshot } from "../../../shared/hooks/useFirebaseOnSnapshot";
 import { Logistics } from "../../../shared/types";
-import { ACTIVE_LOGISTICS_STATUSES } from "../../../shared/utils/logistics";
 
 export const useLogistics = (
     dateRange: { from: Date | null, to: Date | null },
     selectedField: string,
     campaignId: string
 ) => {
-
-    const constraints = useMemo(() => {
-        if (!campaignId) return [];
-        const baseConstraints: QueryConstraint[] = [where('campaign.id', '==', campaignId), orderBy('date', 'desc')];
-        if (dateRange.from) {
-            baseConstraints.push(where('date', '>=', Timestamp.fromDate(startOfDay(dateRange.from))));
-        }
-        if (dateRange.to) {
-            baseConstraints.push(where('date', '<=', Timestamp.fromDate(endOfDay(dateRange.to))));
-        }
-        if (selectedField && selectedField !== 'all') {
-            baseConstraints.push(where('field.id', '==', selectedField));
-        }
-        return baseConstraints;
-    }, [dateRange.from, dateRange.to, selectedField, campaignId]);
 
     const isTodayRange = useMemo(() => {
         const from = dateRange.from;
@@ -39,77 +23,75 @@ export const useLogistics = (
         return true;
     }, [dateRange.from, dateRange.to]);
 
-    const todayRealtimeConstraintsByStatus = useMemo(() => {
-        if (!campaignId || !isTodayRange) return {} as Record<string, QueryConstraint[]>;
+    const todayRealtimeConstraints = useMemo(() => {
+        if (!campaignId || !isTodayRange || !selectedField) return;
         const now = new Date();
         const start = Timestamp.fromDate(startOfDay(now));
         const end = Timestamp.fromDate(endOfDay(now));
         const base: QueryConstraint[] = [
             where('campaign.id', '==', campaignId),
+            where('field.id', '==', selectedField),
             where('date', '>=', start),
             where('date', '<=', end),
+            where('active', '==', true),
+            orderBy('date', 'desc')
         ];
-        if (selectedField && selectedField !== 'all') {
-            base.push(where('field.id', '==', selectedField));
-        }
-        return {
-            [ACTIVE_LOGISTICS_STATUSES[0]]: [
-                ...base,
-                where('status', '==', ACTIVE_LOGISTICS_STATUSES[0]),
-                orderBy('date', 'desc')
-            ],
-            [ACTIVE_LOGISTICS_STATUSES[1]]: [
-                ...base,
-                where('status', '==', ACTIVE_LOGISTICS_STATUSES[1]),
-                orderBy('date', 'desc')
-            ]
-        };
+       return base;
     }, [campaignId, isTodayRange, selectedField]);
 
-    const todayRealtimeConstraintsRoute = todayRealtimeConstraintsByStatus[ACTIVE_LOGISTICS_STATUSES[0]] ?? [];
-    const todayRealtimeConstraintsField = todayRealtimeConstraintsByStatus[ACTIVE_LOGISTICS_STATUSES[1]] ?? [];
+    
 
-    const { data: todayRouteData, loading: loadingTodayRoute, error: errorTodayRoute } = useFirebaseOnSnapshot<Logistics>({
+    const { data: todayData, loading: loadingTodayData, error: errorTodayData } = useFirebaseOnSnapshot<Logistics>({
         collectionName: 'logistics',
-        constraints: todayRealtimeConstraintsRoute,
+        constraints: todayRealtimeConstraints,
         dependencies: [campaignId, selectedField, dateRange.from?.getTime(), dateRange.to?.getTime()],
-        enabled: !!campaignId && isTodayRange
-    });
-
-    const { data: todayFieldData, loading: loadingTodayField, error: errorTodayField } = useFirebaseOnSnapshot<Logistics>({
-        collectionName: 'logistics',
-        constraints: todayRealtimeConstraintsField,
-        dependencies: [campaignId, selectedField, dateRange.from?.getTime(), dateRange.to?.getTime()],
-        enabled: !!campaignId && isTodayRange
+        enabled: !!campaignId && !!selectedField && isTodayRange
     });
 
     const historicalConstraints = useMemo(() => {
-        if (!campaignId) return [] as QueryConstraint[];
-        const base = [...constraints];
-        if (isTodayRange) {
-            base.push(where('status', 'in', ['closed']));
+        if (!campaignId || !selectedField) return [] as QueryConstraint[];
+        const base: QueryConstraint[] = [];
+        // Rebuild constraints without active filter; we want historical (non-today) documents.
+        // Use the original dateRange bounds but exclude today's window if isTodayRange.
+        const now = new Date();
+        const todayStart = startOfDay(now);
+        // Base mandatory filters
+        base.push(where('campaign.id', '==', campaignId));
+        base.push(where('field.id', '==', selectedField));
+
+        // Apply date range filters except we split out today's docs (handled by realtime)
+        if (dateRange.from) {
+            base.push(where('date', '>=', Timestamp.fromDate(startOfDay(dateRange.from))));
         }
+        if (dateRange.to) {
+            base.push(where('date', '<=', Timestamp.fromDate(endOfDay(dateRange.to))));
+        }
+        if (isTodayRange) {
+            // Exclude today's docs to avoid duplication with realtime listener
+            base.push(where('date', '<', Timestamp.fromDate(todayStart)));
+        }
+        base.push(orderBy('date', 'desc'));
         base.push(limit(200));
         return base;
-    }, [constraints, campaignId, isTodayRange]);
+    }, [campaignId, selectedField, dateRange.from, dateRange.to, isTodayRange]);
 
     const { data: historicalData, loading: loadingHistorical, error: errorHistorical } = useFirebaseQuery<Logistics>({
         collectionName: 'logistics',
         constraints: historicalConstraints,
         dependencies: [campaignId, selectedField, dateRange.from?.getTime(), dateRange.to?.getTime()],
-        enabled: !!campaignId && (isTodayRange || !isTodayRange)
+        enabled: !!campaignId && !!selectedField
     });
     
     const logistics = useMemo(() => {
         if (isTodayRange) {
-        const combined = [...(todayRouteData ?? []), ...(todayFieldData ?? []), ...(historicalData ?? [])];
+        const combined = [...(todayData ?? []), ...(historicalData ?? [])];
         return combined.sort((a, b) => (b.date?.toMillis?.() ?? 0) - (a.date?.toMillis?.() ?? 0));
         }
         return historicalData;
-    }, [isTodayRange, todayRouteData, todayFieldData, historicalData]);
+    }, [isTodayRange, todayData, historicalData]);
 
-    const loading = isTodayRange ? ((loadingTodayRoute || loadingTodayField) || loadingHistorical) : loadingHistorical;
-    const error = isTodayRange ? (errorTodayRoute || errorTodayField || errorHistorical) : errorHistorical;
+    const loading = isTodayRange ? (loadingTodayData || loadingHistorical) : loadingHistorical;
+    const error = isTodayRange ? (errorTodayData || errorHistorical) : errorHistorical;
 
     return { logistics, loading, error };
 };

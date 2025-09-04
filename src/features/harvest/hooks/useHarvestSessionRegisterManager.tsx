@@ -11,7 +11,7 @@ export const useRegisterManager = (
     
     const [selectedRegister, setSelectedRegister] = useState<HarvestSessionRegister | null>(null);
     const [modal, setModal] = useState<'add' | 'edit' | 'delete' | null>(null);
-    const { siloBags } = useSiloBags({ fieldId: 'all', cropId: harvestSession.crop?.id, status: 'active' });
+    const { siloBags } = useSiloBags(harvestSession.campaign?.id, harvestSession.field?.id, { cropId: harvestSession.crop?.id, status: 'active' });
     const { destinations } = useDestinations();
 
     const handleAdd = useCallback(async (data: {

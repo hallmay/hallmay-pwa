@@ -14,7 +14,6 @@ createRoot(document.getElementById('root')!).render(
   <AuthProvider>
     <UpdateManager />
     <PWAInstallBanner />
-    {/* <SyncProvider> */}
     <DataProvider>
       <BrowserRouter>
         <App />
@@ -41,7 +40,6 @@ createRoot(document.getElementById('root')!).render(
           }
         }}
       />
-    {/* </SyncProvider> */}
     </DataProvider>
   </AuthProvider>
 )

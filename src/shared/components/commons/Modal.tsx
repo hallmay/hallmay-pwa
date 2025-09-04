@@ -7,10 +7,11 @@ interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
     title: string;
+    size?: 'sm' | 'md' | 'lg';
 }
 
 
-export const Modal: React.FC<ModalProps> = ({ children, isOpen, onClose, title }) => {
+export const Modal: React.FC<ModalProps> = ({ children, isOpen, onClose, title, size = 'md' }) => {
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
         if (isOpen) {
@@ -21,17 +22,19 @@ export const Modal: React.FC<ModalProps> = ({ children, isOpen, onClose, title }
             document.removeEventListener('keydown', handleKeyDown);
             document.body.style.overflow = 'auto';
         };
-    }, [isOpen, onClose]) 
+    }, [isOpen, onClose]);
 
     if (!isOpen) return null;
 
+    const maxWidth = size === 'sm' ? 'max-w-sm' : size === 'lg' ? 'max-w-2xl' : 'max-w-lg';
+
     return (
         <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99] flex items-center sm:items-start justify-center p-4 animate-fade-in sm:overflow-y-auto"
-            onClick={onClose} role="dialog" aria-modal="true" >
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99] flex items-center justify-center p-4 animate-fade-in overflow-y-auto"
+            onClick={onClose} role="dialog" aria-modal="true">
             <div
-                className="bg-surface rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-lg sm:my-8 transform transition-all duration-300 animate-slide-up"
-                onClick={e => e.stopPropagation()} >
+                className={`bg-surface rounded-2xl shadow-2xl p-4 sm:p-6 w-full ${maxWidth} my-8 transform transition-all duration-300 animate-slide-up`}
+                onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-text-primary">{title}</h2>
                     <Button variant="ghost" onClick={onClose} aria-label="Cerrar modal" className="-mr-2 -mt-2">

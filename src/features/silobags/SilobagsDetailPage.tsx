@@ -19,7 +19,7 @@ const SiloBagDetail: FC = () => {
     const { siloId } = useParams<{ siloId: string }>();
     const navigate = useNavigate();
     const { siloBag, loading: loadingSilo, error: errorSilo } = useSiloBag(siloId);
-    const { movements, loading: loadingMovements, error: errorMovements } = useSiloBagMovements(siloBag?.id);
+    const { movements, loading: loadingMovements, error: errorMovements } = useSiloBagMovements(siloBag?.id,siloBag?.field.id);
     const isLoading = loadingSilo || loadingMovements;
     const error = errorSilo || errorMovements;
 

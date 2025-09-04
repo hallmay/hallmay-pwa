@@ -26,7 +26,7 @@ const Logistics = () => {
                 from: new Date(),
                 to: new Date()
             },
-            field: 'all'
+            field: ''
         }
     });
 
@@ -103,6 +103,7 @@ const Logistics = () => {
 
             <LogisticsFilters
                 control={control}
+                selectedField={selectedField}
                 campaignFields={campaignFields}
                 loadingFields={loadingFields}
             />

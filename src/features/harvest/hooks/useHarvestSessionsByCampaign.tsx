@@ -15,7 +15,7 @@ export const useHarvestSessionsByCampaign = (
     if (!campaignId || !fieldId) return [];
     const clauses: any[] = [
       where('campaign.id', '==', campaignId),
-      where('status', 'in', ['pending', 'in-progress']),
+      where('active', '==', true),
       where('field.id', '==', fieldId),
       orderBy('date', 'desc'),
       limit(100)
@@ -34,7 +34,7 @@ export const useHarvestSessionsByCampaign = (
     if (!campaignId || !fieldId) return [];
     const clauses: any[] = [
       where('campaign.id', '==', campaignId),
-      where('status', '==', 'finished'),
+      where('active', '==', false),
       where('field.id', '==', fieldId),
       orderBy('date', 'desc')
     ];

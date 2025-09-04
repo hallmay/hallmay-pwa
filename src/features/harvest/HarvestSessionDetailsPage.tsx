@@ -1,5 +1,5 @@
 // src/pages/harvest-sessions/HarvestDetails.tsx
-import { ArrowLeft, Edit, PlayCircle, } from "lucide-react";
+import { ArrowLeft, Edit, PlayCircle, CircleStop } from "lucide-react";
 import { type FC, useMemo, useEffect, useState } from "react";
 import { useParams, useNavigate, useMatch, Link, Outlet } from "react-router";
 import Button from "../../shared/components/commons/Button";
@@ -9,8 +9,9 @@ import { useHarvestSessionRegisters } from "./hooks/useHarvestSessionRegisters";
 
 import PageHeader from "../../shared/components/layout/PageHeader";
 // export utils se cargan on-demand para evitar inflar el bundle inicial
-import { updateHarvestSessionProgress } from "./services/harvestSession";
+import { advanceHarvestSessionProgress, closeHarvestSession } from "./services/harvestSession";
 import UpdateAdvanceModal from "./components/modals/UpdateAdvanceModal";
+import CloseHarvestSessionModal from "./components/modals/CloseHarvestSessionModal";
 import StatusBadge from "../../shared/components/commons/StatusBadge";
 import ExportDropdown from "../../shared/components/commons/ExportDropdown";
 import PageLoader from "../../shared/components/layout/PageLoader";
@@ -22,9 +23,11 @@ interface HarvestDetailProps {
 const HarvestDetail: FC<HarvestDetailProps> = ({ onBack }) => {
     const { harvestSessionId } = useParams<{ harvestSessionId: string }>();
     const { session: harvestSession, loading } = useHarvestSession(harvestSessionId || '');
-    const { registers } = useHarvestSessionRegisters(harvestSessionId || '');
+    const { registers } = useHarvestSessionRegisters(harvestSessionId || '', harvestSession?.field.id || '');
     const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
     const [isEditManagerModalOpen, setIsEditManagerModalOpen] = useState(false);
+    const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
+    const [closing, setClosing] = useState(false);
     const navigate = useNavigate();
 
     // Determinar la pestaña activa basándose en la URL
@@ -57,16 +60,23 @@ const HarvestDetail: FC<HarvestDetailProps> = ({ onBack }) => {
         }
     };
 
-    const handleUpdateAdvance = async (data: any) => {
-        if (!harvestSession) return;
-        updateHarvestSessionProgress(harvestSession, data.status, data.harvested_hectares)
-            .catch(error => {
-                console.error('Error al actualizar avance:', error);
-            });
+        const handleAdvanceOnly = async (newTotal: number) => {
+                if (!harvestSession) return;
+                advanceHarvestSessionProgress(harvestSession, newTotal)
+                    .catch(err => console.error('Error al avanzar:', err));
+                setIsAdvanceModalOpen(false);
+        };
 
-        setIsAdvanceModalOpen(false);
-
-    };
+        const handleConfirmClose = async () => {
+                if (!harvestSession) return;
+                setClosing(true);
+                closeHarvestSession(harvestSession)
+                    .catch(err => console.error('Error al cerrar sesión:', err))
+                    .finally(() => {
+                        setClosing(false);
+                        setIsCloseModalOpen(false);
+                    });
+        };
 
     const TabButton: FC<{ isActive: boolean; to: string; children: React.ReactNode }> = ({ isActive, to, children }) => (
         <Link
@@ -96,14 +106,22 @@ const HarvestDetail: FC<HarvestDetailProps> = ({ onBack }) => {
     return (
         <>
 
-            {isAdvanceModalOpen && (
-                <UpdateAdvanceModal
-                    isOpen={isAdvanceModalOpen}
-                    onClose={() => setIsAdvanceModalOpen(false)}
-                    onSubmit={handleUpdateAdvance}
-                    harvestSession={harvestSession}
-                />
-            )}
+                        {isAdvanceModalOpen && (
+                            <UpdateAdvanceModal
+                                isOpen={isAdvanceModalOpen}
+                                onClose={() => setIsAdvanceModalOpen(false)}
+                                harvestSession={harvestSession}
+                                onAdvance={handleAdvanceOnly}
+                            />
+                        )}
+                        {isCloseModalOpen && harvestSession.status !== 'finished' && (
+                            <CloseHarvestSessionModal
+                                isOpen={isCloseModalOpen}
+                                onClose={() => !closing && setIsCloseModalOpen(false)}
+                                session={harvestSession}
+                                onConfirm={handleConfirmClose}
+                            />
+                        )}
             {isEditManagerModalOpen && (
                 <EditManagerModal
                     session={harvestSession}
@@ -145,16 +163,27 @@ const HarvestDetail: FC<HarvestDetailProps> = ({ onBack }) => {
                         </div>
                     </div>
                     <div className="mt-4 pt-4 border-t border-gray-200">
-                        <div className="flex justify-between items-baseline">
+                        <div className="flex items-center justify-between flex-wrap gap-3">
                             <h3 className="text-lg font-bold text-text-primary">Avance de Cosecha</h3>
-                            <span className="text-sm font-medium text-text-secondary">
-                                {harvestSession.harvested_hectares || 0} ha / {harvestSession.hectares || 0} ha ({progress}%)
-                            </span>
+                            {harvestSession.status !== 'finished' && (
+                                <Button
+                                    variant="secondary"
+                                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm ml-auto"
+                                    icon={CircleStop}
+                                    onClick={() => setIsCloseModalOpen(true)}
+                                    disabled={closing}
+                                >
+                                    Cerrar Cosecha
+                                </Button>
+                            )}
                         </div>
+                        <span className="block mt-2 text-sm font-medium text-text-secondary text-right">
+                            {harvestSession.harvested_hectares || 0} ha / {harvestSession.hectares || 0} ha ({progress}%)
+                        </span>
                         <div className="mt-2 h-4 w-full bg-background rounded-full overflow-hidden">
                             <div style={{ width: `${progress}%` }} className="h-full bg-primary-darker"></div>
                         </div>
-                        <div className="flex justify-center md:justify-end mt-4 ">
+                        <div className="flex justify-end mt-4">
                             <Button
                                 variant="secondary"
                                 className="w-full md:w-auto"

@@ -7,7 +7,6 @@ import { createSecurityQuery } from '../../firebase/queryBuilder';
 import { chunkArray } from '../../firebase/utils';
 import { useDeviceType } from '../../hooks/useDeviceType';
 import { startOfDay, endOfDay } from 'date-fns';
-import { ACTIVE_LOGISTICS_STATUSES } from '../../utils/logistics';
 
 interface ColdData {
     activeCampaign: Campaign | null;
@@ -55,7 +54,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     const primeCriticalData = useCallback(async (user: User, activeCampaign: Campaign, fieldIds: string[]) => {
         if (!activeCampaign || !fieldIds || !isMobileOrTablet) return;
-        console.log("🚀 Iniciando pre-carga de datos operacionales críticos...");
 
         setSyncStatus('syncing');
         const lastSyncItem = localStorage.getItem('lastPrimeSync');
@@ -71,7 +69,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         if (!isAdminLike) {
             const accessible = Array.from(new Set((user.accessibleFieldIds ?? []).filter(Boolean)));
             if (accessible.length === 0) {
-                // Sin campos accesibles, nada que primar
                 const now = new Date();
                 setLastPrime(now);
                 localStorage.setItem('lastPrimeSync', now.toISOString());
@@ -90,9 +87,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             return true;
         }
 
-        const fieldChunks = chunkArray(effectiveFieldIds, 10);
+        const fieldChunks = chunkArray(effectiveFieldIds, 30);
 
-        // 3) Ejecutar queries con UN solo where('field.id','in', chunk)
         const plotPromises = fieldChunks.map(chunk =>
             getDocs(query(
                 collection(db, 'plots'),
@@ -116,147 +112,207 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 collection(db, 'harvest_sessions'),
                 ...securityConstraints,
                 where('campaign.id', '==', activeCampaign.id),
-                where('status', 'in', ['pending', 'in-progress']),
+                where('active', '==', true),
                 where('field.id', 'in', chunk)
             ))
         );
 
-        // 4) Primar logística del día (solo estados activos) para cache offline
         const today = new Date();
         const todayStart = Timestamp.fromDate(startOfDay(today));
         const todayEnd = Timestamp.fromDate(endOfDay(today));
-    const activeLogisticsStatuses = ACTIVE_LOGISTICS_STATUSES;
-        
-        const todaysActiveLogisticsPromises = activeLogisticsStatuses.flatMap(status =>
+
+
+        const logisticsSnap = fieldChunks.map(chunk =>
+            getDocs(query(
+                collection(db, 'logistics'),
+                ...baseConstraints,
+                where('campaign.id', '==', activeCampaign.id),
+                where('active', '==', true),
+                where('date', '>=', todayStart),
+                where('date', '<=', todayEnd),
+                where('field.id', 'in', chunk)
+            ))
+        );
+
+    try {
+        const [sessionsSnaps, siloBagsSnaps, _plotSnaps, _logisticsSnap] = await Promise.all([
+            Promise.all(sessionPromises),
+            Promise.all(siloBagPromises),
+            Promise.all(plotPromises),
+            Promise.all(logisticsSnap)
+        ]);
+
+        const sessions = { docs: sessionsSnaps.flatMap(snap => snap.docs) };
+        const silobags = { docs: siloBagsSnaps.flatMap(snap => snap.docs) };
+
+        const subcollectionPromises = [
+            ...sessions.docs.map(doc => getDocs(query(collection(db, `harvest_sessions/${doc.id}/registers`), ...createSecurityQuery(user).build(),where('field.id','==',doc.data().field.id), orderBy('date', 'desc'), limit(10)))),
+            ...silobags.docs.map(doc => getDocs(query(collection(db, `silo_bags/${doc.id}/movements`), ...createSecurityQuery(user).build(),where('field.id','==',doc.data().field.id), orderBy('date', 'desc'), limit(10))))
+        ];
+
+        await Promise.all(subcollectionPromises);
+
+        const now = new Date();
+        setLastPrime(now);
+        localStorage.setItem('lastPrimeSync', now.toISOString());
+        setSyncStatus('synced');
+        return true;
+    } catch (error) {
+        console.error("Error durante la pre-carga:", error);
+        setSyncStatus('error');
+        return false;
+    }
+}, []);
+
+const checkForActualChanges = async (fieldIds: string[], lastCheck: Date) => {
+    if (fieldIds.length === 0) return false;
+
+    const lastCheckTimestamp = Timestamp.fromDate(lastCheck);
+    const fieldChunks = chunkArray(fieldIds, 10);
+
+    try {
+        const sessionChecks = await Promise.all(
             fieldChunks.map(chunk =>
                 getDocs(query(
-                    collection(db, 'logistics'),
-                    ...baseConstraints,
-                    where('campaign.id', '==', activeCampaign.id),
-                    where('status', '==', status),
-                    where('date', '>=', todayStart),
-                    where('date', '<=', todayEnd),
+                    collection(db, 'harvest_sessions'),
+                    where('organization_id', '==', currentUser?.organizationId),
                     where('field.id', 'in', chunk),
-                    orderBy('date', 'desc'),
-                    limit(100)
+                    where('active', '==', true),
+                    where('updated_at', '>', lastCheckTimestamp),
+                    limit(1)
                 ))
             )
         );
 
-        try {
-            const [sessionsSnaps, siloBagsSnaps, _plotSnaps] = await Promise.all([
-                Promise.all(sessionPromises),
-                Promise.all(siloBagPromises),
-                Promise.all(plotPromises)
-            ]);
+        if (sessionChecks.some(snap => snap.size > 0)) return true;
 
-            const sessions = { docs: sessionsSnaps.flatMap(snap => snap.docs) };
-            const silobags = { docs: siloBagsSnaps.flatMap(snap => snap.docs) };
+        const siloBagCheck = await getDocs(query(
+            collection(db, 'silo_bags'),
+            where('organization_id', '==', currentUser?.organizationId),
+            where('status', '==', 'active'),
+            where('updated_at', '>', lastCheckTimestamp),
+            limit(1)
+        ));
 
-            const subcollectionPromises = [
-                ...sessions.docs.map(doc => getDocs(query(collection(db, `harvest_sessions/${doc.id}/registers`), ...securityConstraints, orderBy('date', 'desc'), limit(10)))),
-                ...silobags.docs.map(doc => getDocs(query(collection(db, `silo_bags/${doc.id}/movements`), ...securityConstraints, orderBy('date', 'desc'), limit(10))))
-            ];
+        if (siloBagCheck.size > 0) return true;
 
-            await Promise.all([
-                Promise.all(subcollectionPromises),
-                Promise.all(todaysActiveLogisticsPromises)
-            ]);
-            const now = new Date();
-            setLastPrime(now);
-            localStorage.setItem('lastPrimeSync', now.toISOString());
-            setSyncStatus('synced');
-            console.log("✅ Pre-carga de datos críticos completada.");
-            return true;
-        } catch (error) {
-            console.error("Error durante la pre-carga:", error);
-            setSyncStatus('error');
-            return false;
-        }
-    }, []);
+        const logisticsCheck = await getDocs(query(
+            collection(db, 'logistics'),
+            where('organization_id', '==', currentUser?.organizationId),
+            where('active', '==', true),
+            where('updated_at', '>', lastCheckTimestamp),
+            limit(1)
+        ));
 
-    useEffect(() => {
-        if (!currentUser) {
+        if (logisticsCheck.size > 0) return true;
+
+        const plotChecks = await Promise.all(
+            fieldChunks.map(chunk =>
+                getDocs(query(
+                    collection(db, 'plots'),
+                    where('organization_id', '==', currentUser?.organizationId),
+                    where('field.id', 'in', chunk),
+                    where('updated_at', '>', lastCheckTimestamp),
+                    limit(1)
+                ))
+            )
+        );
+
+        if (plotChecks.some(snap => snap.size > 0)) return true;
+
+    } catch (error) {
+        console.error('Error checking for changes:', error);
+        return true;
+    }
+};
+
+useEffect(() => {
+    if (!currentUser) {
+        setLoading(false);
+        setColdData({ activeCampaign: null, campaigns: [], campaignFields: [], crops: [], destinations: [], harvesters: [], managers: [] });
+        return;
+    }
+
+    setLoading(true);
+    const collectionsToListen: (keyof Omit<ColdData, 'activeCampaign' | 'campaignFields' | 'managers'>)[] = ['campaigns', 'crops', 'destinations', 'harvesters'];
+
+    const unsubscribes = collectionsToListen.map(name => {
+        const q = query(collection(db, name), ...createSecurityQuery(currentUser).build());
+        return onSnapshot(q, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+            setColdData(prev => ({ ...prev, [name]: data }));
+        });
+    });
+
+    const managersQuery = query(collection(db, 'users'), where('role', 'in', ['admin', 'manager']), ...createSecurityQuery(currentUser).build());
+    const unsubManagers = onSnapshot(managersQuery, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as HarvestManager[];
+        setColdData(prev => ({ ...prev, managers: data }));
+    });
+    unsubscribes.push(unsubManagers);
+
+    const activeCampaignQuery = query(collection(db, 'campaigns'), where('active', '==', true), ...createSecurityQuery(currentUser).build(), limit(1));
+    const unsubCampaign = onSnapshot(activeCampaignQuery, (snapshot) => {
+        const activeCampaign = snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Campaign;
+        setColdData(prev => ({ ...prev, activeCampaign }));
+        if (!activeCampaign) setLoading(false);
+    });
+    unsubscribes.push(unsubCampaign);
+
+    return () => unsubscribes.forEach(unsub => unsub());
+}, [currentUser]);
+
+useEffect(() => {
+    if (!currentUser || !coldData.activeCampaign) return;
+
+    const q = query(collection(db, 'campaign_fields'), where('campaign.id', '==', coldData.activeCampaign.id), ...createSecurityQuery(currentUser).withFieldAccess('field.id').build());
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CampaignField[];
+        setColdData(prev => ({ ...prev, campaignFields: data }));
+
+        if (snapshot.docs.length > 0 && coldData.activeCampaign) {
+            const fieldIds = data.map(cf => cf.field?.id).filter((id): id is string => Boolean(id));
+            primeCriticalData(currentUser, coldData.activeCampaign, fieldIds).finally(() => setLoading(false));
+        } else {
             setLoading(false);
-            setColdData({ activeCampaign: null, campaigns: [], campaignFields: [], crops: [], destinations: [], harvesters: [], managers: []});
-            return;
         }
+    });
+    return () => unsubscribe();
+}, [coldData.activeCampaign, currentUser, primeCriticalData]);
 
-        setLoading(true);
-        const collectionsToListen: (keyof Omit<ColdData, 'activeCampaign' | 'campaignFields' | 'managers'>)[] = ['campaigns', 'crops', 'destinations', 'harvesters'];
+useEffect(() => {
+    const REFRESH_THRESHOLD_MS = 1000 * 60 * 15;
 
-        const unsubscribes = collectionsToListen.map(name => {
-            const q = query(collection(db, name), ...createSecurityQuery(currentUser).build());
-            return onSnapshot(q, (snapshot) => {
-                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-                setColdData(prev => ({ ...prev, [name]: data }));
-            });
-        });
-
-        const managersQuery = query(collection(db, 'users'), where('role', 'in', ['admin', 'manager']), ...createSecurityQuery(currentUser).build());
-        const unsubManagers = onSnapshot(managersQuery, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as HarvestManager[];
-            setColdData(prev => ({ ...prev, managers: data }));
-        });
-        unsubscribes.push(unsubManagers);
-
-        const activeCampaignQuery = query(collection(db, 'campaigns'), where('active', '==', true), ...createSecurityQuery(currentUser).build(), limit(1));
-        const unsubCampaign = onSnapshot(activeCampaignQuery, (snapshot) => {
-            const activeCampaign = snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Campaign;
-            setColdData(prev => ({ ...prev, activeCampaign }));
-            if (!activeCampaign) setLoading(false);
-        });
-        unsubscribes.push(unsubCampaign);
-
-        return () => unsubscribes.forEach(unsub => unsub());
-    }, [currentUser]);
-
-    useEffect(() => {
-        if (!currentUser || !coldData.activeCampaign) return;
-
-        const q = query(collection(db, 'campaign_fields'), where('campaign.id', '==', coldData.activeCampaign.id), ...createSecurityQuery(currentUser).withFieldAccess('field.id').build());
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CampaignField[];
-            setColdData(prev => ({ ...prev, campaignFields: data }));
-
-            if (snapshot.docs.length > 0 && coldData.activeCampaign) {
-                const fieldIds = data.map(cf => cf.field?.id).filter((id): id is string => Boolean(id));
-                primeCriticalData(currentUser, coldData.activeCampaign, fieldIds).finally(() => setLoading(false));
-            } else {
-                setLoading(false);
-            }
-        });
-        return () => unsubscribe();
-    }, [coldData.activeCampaign, currentUser, primeCriticalData]);
-
-    useEffect(() => {
-        const REFRESH_THRESHOLD_MS = 1000 * 60 * 15;
-
-        const handleAppVisibility = async () => {
-            if (document.visibilityState === 'visible' && currentUser && !loading && coldData.activeCampaign && coldData.campaignFields.length > 0) {
-                const timeSinceLastPrime = lastPrime ? new Date().getTime() - lastPrime.getTime() : Infinity;
-                if (timeSinceLastPrime > REFRESH_THRESHOLD_MS) {
-                    const fieldIds = coldData.campaignFields.map(cf => cf.field.id).filter((id): id is string => Boolean(id));
+    const handleAppVisibility = async () => {
+        if (document.visibilityState === 'visible' && lastPrime && currentUser && !loading && coldData.activeCampaign && coldData.campaignFields.length > 0) {
+            const timeSinceLastPrime = new Date().getTime() - lastPrime.getTime();
+            if (timeSinceLastPrime > REFRESH_THRESHOLD_MS) {
+                const fieldIds = coldData.campaignFields.map(cf => cf.field.id).filter((id): id is string => Boolean(id));
+                const hasChanges = await checkForActualChanges(fieldIds, lastPrime);
+                if (hasChanges) {
                     await primeCriticalData(currentUser, coldData.activeCampaign, fieldIds);
+                } else {
+                    setLastPrime(new Date());
                 }
             }
-        };
+        }
+    };
 
-        document.addEventListener('visibilitychange', handleAppVisibility);
-        window.addEventListener('online', handleAppVisibility);
+    document.addEventListener('visibilitychange', handleAppVisibility);
+    window.addEventListener('online', handleAppVisibility);
 
-        return () => {
-            document.removeEventListener('visibilitychange', handleAppVisibility);
-            window.removeEventListener('online', handleAppVisibility);
-        };
-    }, [currentUser, loading, lastPrime, coldData.campaignFields, coldData.activeCampaign, primeCriticalData]);
-    
-    const value = useMemo(() => ({
-        ...coldData,
-        loading,
-        syncStatus,
-        lastPrime,
-    }), [coldData, loading, syncStatus, lastPrime]);
+    return () => {
+        document.removeEventListener('visibilitychange', handleAppVisibility);
+        window.removeEventListener('online', handleAppVisibility);
+    };
+}, [currentUser, loading, lastPrime, coldData.campaignFields, coldData.activeCampaign, primeCriticalData]);
 
-    return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+const value = useMemo(() => ({
+    ...coldData,
+    loading,
+    syncStatus,
+    lastPrime,
+}), [coldData, loading, syncStatus, lastPrime]);
+
+return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };

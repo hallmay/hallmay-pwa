@@ -10,7 +10,7 @@ interface SiloBagFilters {
     status?: string | null;
 }
 
-export const useSiloBags = (campaignId: string | null, fieldId: string, filters: SiloBagFilters = {}) => {
+export const useSiloBags = (campaignId: string | undefined, fieldId: string, filters: SiloBagFilters = {}) => {
     const memoizedFilters = useMemo(() => ({
         cropId: filters.cropId || 'all',
         status: filters.status || 'all'

@@ -92,6 +92,7 @@ class HarvestSessionService extends FirebaseBatchOperation {
             organization_id: currentUser.organizationId,
             harvested_kgs: 0,
             status: 'pending' as HarvestStatus,
+            active: true,
             harvested_hectares: 0,
             yields: { seed: 0, harvested: 0, real_vs_projected: 0 }
         };
@@ -100,7 +101,7 @@ class HarvestSessionService extends FirebaseBatchOperation {
     private addHarvestSessionToPlot(params: StartSessionParams) {
         const {formData,activeCampaign} = params;
 
-        this.updateDocument(this.PLOTS_COLLECTION_NAME,formData.plotId,{
+        this.batchUpdate(this.PLOTS_COLLECTION_NAME,formData.plotId,{
             harvest_sessions: arrayUnion({campaign_id: activeCampaign.id, crop_id: formData.cropId})
         });
     }
@@ -157,32 +158,61 @@ class HarvestSessionService extends FirebaseBatchOperation {
     /**
      * Actualiza el progreso de una sesión de cosecha
      */
-    async updateHarvestSessionProgress(
+    async advanceHarvestSessionProgress(
         currentSession: HarvestSession,
-        newStatus: HarvestStatus,
         newHarvestedHectares: number
     ) {
         this.validateRequiredFields(
-            { currentSession, newStatus, newHarvestedHectares }, 
-            ['currentSession', 'newStatus', 'newHarvestedHectares']
+            { currentSession, newHarvestedHectares }, 
+            ['currentSession', 'newHarvestedHectares']
         );
 
-        // Calcular la sesión con nuevos rendimientos
+        const derivedStatus: HarvestStatus = (currentSession.status === 'pending' && newHarvestedHectares > 0)
+            ? 'in-progress'
+            : currentSession.status;
+
         const sessionWithNewProgress = {
             ...currentSession,
-            status: newStatus,
+            status: derivedStatus,
             harvested_hectares: newHarvestedHectares,
         };
         const finalSession = getSessionWithRecalculatedYields(sessionWithNewProgress);
 
-        // Preparar payload de actualización
         const updatePayload: Record<string, unknown> = {
             status: finalSession.status,
             harvested_hectares: finalSession.harvested_hectares,
             yields: finalSession.yields,
         };
 
-        // Si hay un solo cosechero, actualizar sus hectáreas cosechadas
+        if (finalSession.harvesters && finalSession.harvesters.length === 1) {
+            const singleHarvester = finalSession.harvesters[0];
+            updatePayload.harvesters = [{
+                ...singleHarvester,
+                harvested_hectares: finalSession.harvested_hectares,
+            }];
+        }
+
+        await this.updateDocument(this.COLLECTION_NAME, currentSession.id, updatePayload);
+    }
+
+    async closeHarvestSession(currentSession: HarvestSession) {
+        this.validateRequiredFields({ currentSession }, ['currentSession']);
+        if (currentSession.status === 'finished') return; // idempotente
+
+        const sessionClosed = {
+            ...currentSession,
+            status: 'finished' as HarvestStatus,
+            active: false,
+        };
+        const finalSession = getSessionWithRecalculatedYields(sessionClosed);
+
+        const updatePayload: Record<string, unknown> = {
+            status: finalSession.status,
+            active: false,
+            harvested_hectares: finalSession.harvested_hectares,
+            yields: finalSession.yields,
+        };
+
         if (finalSession.harvesters && finalSession.harvesters.length === 1) {
             const singleHarvester = finalSession.harvesters[0];
             updatePayload.harvesters = [{
@@ -208,8 +238,10 @@ export const updateHarvestManager = (harvestSessionId: string, newValue: Harvest
 export const upsertHarvesters = (params: UpsertHarvestersParams) => 
     harvestSessionService.upsertHarvesters(params);
 
-export const updateHarvestSessionProgress = (
+export const advanceHarvestSessionProgress = (
     currentSession: HarvestSession,
-    newStatus: HarvestStatus,
     newHarvestedHectares: number
-) => harvestSessionService.updateHarvestSessionProgress(currentSession, newStatus, newHarvestedHectares);
+) => harvestSessionService.advanceHarvestSessionProgress(currentSession, newHarvestedHectares);
+
+export const closeHarvestSession = (currentSession: HarvestSession) =>
+    harvestSessionService.closeHarvestSession(currentSession);

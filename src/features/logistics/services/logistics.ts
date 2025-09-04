@@ -12,6 +12,7 @@ export const addLogisticsOrder = async (data: Partial<Logistics>) => {
         const logisticsCollection = collection(db, 'logistics');
         await addDoc(logisticsCollection, {
             ...data,
+            active: true,
             status: 'in-route-to-field',
             created_at: Timestamp.now()
         });
@@ -32,6 +33,7 @@ export const updateLogisticsStatus = async (id: string, newStatus: string) => {
         const logisticsDoc = doc(db, 'logistics', id);
         await updateDoc(logisticsDoc, {
             status: newStatus,
+            ...(newStatus ===  'closed' ? {active: false} :{}),
             updated_at: Timestamp.now()
         });
 

@@ -138,7 +138,7 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
     }, [handlePlotChange]);
 
     const onSubmit = useCallback(async (data: HarvestFormData) => {
-        await startHarvestSession({
+        startHarvestSession({
             formData: data,
             currentUser,
             activeCampaign: campaign,
@@ -147,6 +147,8 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
             allCrops: crops,
             allHarvestManagers: harvestManagers,
             allHarvesters: harvesters
+        }).catch(error =>{
+            toast.error(`Error al iniciar el lote: ${error.message}`);
         });
 
         toast.success('Lote iniciado con éxito.');
